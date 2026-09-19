@@ -294,13 +294,37 @@ footer{max-width:1440px;margin:0 auto;padding:0 20px 40px;color:var(--faint);fon
 <body>
 
 <header>
-  <div class="brand">
-    <div class="logo" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M7 11l3-4M7 13l3 4M14 7l3 4M14 17l3-4"/></svg>
-    </div>
-    <div><b>TINY LLM</b><small>Learn how a language model thinks, predicts, makes mistakes, and learns.</small></b></div>
-    <div><b>CONTACT</b><small>densanchez1209@gmail.com</small></b></div>
+<div class="brand">
+  <div class="brand-mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <circle cx="5" cy="12" r="2"/>
+      <circle cx="12" cy="6" r="2"/>
+      <circle cx="12" cy="18" r="2"/>
+      <circle cx="19" cy="12" r="2"/>
+      <path d="M7 11l3-4M7 13l3 4M14 7l3 4M14 17l3-4"/>
+    </svg>
   </div>
+
+  <div class="brand-copy">
+    <div class="brand-title">
+      <span>TINY</span> LLM
+      <span class="brand-badge">FROM SCRATCH</span>
+    </div>
+
+    <div class="brand-subtitle">
+      Understand what happens inside a language model.
+    </div>
+  </div>
+
+  <div class="brand-divider"></div>
+
+  <div class="contact">
+    <span class="contact-label">CONTACT</span>
+    <a href="mailto:densanchez1209@gmail.com">
+      densanchez1209@gmail.com
+    </a>
+  </div>
+</div>
   <div class="head-mid">
     <div class="ringwrap" title="Course progress">
       <svg width="38" height="38" viewBox="0 0 38 38">
