@@ -319,16 +319,19 @@ h1,h2,h3,h4 { font-weight: 600; letter-spacing: -0.02em; }
 .lab-calc .calc-result { color: var(--accent); font-weight: 700; font-size: 15px; }
 .lab-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* ====== LIVE ELI5 TOOLTIP ====== */
+/* ====== LIVE ELI5 TOOLTIP — TRANSLUCENT ====== */
 .eli-tip {
   position: fixed;
   z-index: 999;
   max-width: 320px;
   padding: 12px 14px;
-  background: linear-gradient(135deg, #1e2a38 0%, #141b23 100%);
-  border: 1px solid var(--accent);
+  /* Frosted-glass, semi-transparent so the graph shows through */
+  background: rgba(20, 27, 35, 0.1);
+  backdrop-filter: blur(2px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(79, 156, 247, 0.15);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(79,156,247,0.15);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45), 0 0 0 1px rgba(79,156,247,0.10);
   color: var(--text);
   font-size: 12.5px;
   line-height: 1.55;
@@ -349,6 +352,7 @@ h1,h2,h3,h4 { font-weight: 600; letter-spacing: -0.02em; }
   letter-spacing: 0.12em;
   color: var(--accent);
   margin-bottom: 6px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 .eli-tip .eli-value {
   display: block;
@@ -357,12 +361,18 @@ h1,h2,h3,h4 { font-weight: 600; letter-spacing: -0.02em; }
   border-top: 1px dashed rgba(79,156,247,0.35);
   font-size: 11px;
   color: var(--green);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 .eli-tip .eli-value .eli-num {
   font-family: var(--font-mono);
   color: var(--text);
   font-weight: 600;
 }
+/* Slight extra readability boost for text over the graph */
+.eli-tip {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+}
+.eli-tip b { color: #fff; }
 
 /* ====== LIVE VALUE CHIP on slider ====== */
 .lab-control.live .lab-control-value {
@@ -476,13 +486,12 @@ h1,h2,h3,h4 { font-weight: 600; letter-spacing: -0.02em; }
     <div class="sc-row"><kbd>Escape</kbd> Close panel</div>
   </div>
 
-  <!-- LIVE ELI5 TOOLTIP -->
   <div class="eli-tip" id="eliTip"></div>
 </div>
 
 <script>
 // =====================================================================
-//  TINY LLM — LIVE VISUAL LEARNING + LIVE ELI5 TOOLTIPS
+//  TINY LLM — LIVE VISUAL LEARNING + TRANSLUCENT ELI5 TOOLTIPS
 // =====================================================================
 
 const TRAINING_SENTENCE = "The quick brown fox jumps over the lazy dog";
@@ -507,73 +516,38 @@ function getChapterForStep(n) {
 }
 
 // =====================================================================
-//  ELI5 TOOLTIP CONTENT — plain-language explanation for every control
-//  Each entry returns the tooltip body given the current value.
+//  ELI5 TOOLTIP CONTENT
 // =====================================================================
 const ELI5 = {
-  // Embedding lab dimensions
-  embDim0: (v) => `This is one of the four numbers that makes up the word "The". It's like one ingredient in the word's secret recipe. Right now it's <b>${v.toFixed(4)}</b>. When you drag it, the whole shape of the word shifts.`,
-  embDim1: (v) => `The second ingredient in the word's recipe. A positive number pulls the word one way, a negative number pulls it the other. Right now it's <b>${v.toFixed(4)}</b>.`,
-  embDim2: (v) => `The third ingredient. Think of each dimension as one dial on a mixing board that describes the word. Right now: <b>${v.toFixed(4)}</b>.`,
-  embDim3: (v) => `The fourth ingredient. Together these four numbers are the entire "meaning" the model stores for the word. Right now: <b>${v.toFixed(4)}</b>.`,
-
-  // Neuron lab
-  neuronWeight: (v) => `The weight is like a volume knob for the input signal. A big weight means this input shouts; a small weight means it whispers. Right now the weight is <b>${v.toFixed(4)}</b>, so the input is being turned ${v >= 0 ? 'up' : 'down'}.`,
-  neuronBias: (v) => `The bias is a little extra push added after the input is scaled by the weight. It shifts the neuron's answer up or down even if the input is zero. Right now it's <b>${v.toFixed(4)}</b>.`,
-
-  // ReLU lab
-  reluInput: (v) => `This is the number going into ReLU. ReLU is a gate: if the number is positive it lets it through, if it's negative it turns it into zero. Right now the input is <b>${v.toFixed(4)}</b>, so ReLU will output <b>${Math.max(0,v).toFixed(4)}</b>.`,
-
-  // Hidden lab
-  hiddenZ: (v) => `This is what neuron 0 computes before ReLU: a weighted sum plus a bias. If it's positive, the neuron "fires" and passes its value on. If it's negative, ReLU turns it off. Right now: <b>${v.toFixed(4)}</b>.`,
-
-  // Output lab
-  outputH0: (v) => `This is the value of hidden neuron 0. It flows into every output neuron, scaled by that output's weight. Right now it's <b>${v.toFixed(4)}</b>, so it's contributing <b>${(v*0.8).toFixed(4)}</b> to logit 0.`,
-
-  // Softmax lab
-  softmaxLogit0: (v) => `A logit is a raw score. The higher the logit, the more likely that word is. Softmax turns all the logits into percentages that add up to 100%. Right now logit 0 is <b>${v.toFixed(3)}</b>.`,
-
-  // Loss lab
-  lossP: (v) => `This is the probability the model gave to the correct answer. If the model was very confident and right, the loss is tiny. If it was confident and wrong, the loss is huge. Right now P(target) is <b>${v.toFixed(4)}</b>, so the loss is <b>${(-Math.log(v)).toFixed(4)}</b>.`,
-
-  // LR lab
-  lrLR: (v) => `The learning rate is like the size of the steps you take when walking down a hill. Too big and you might overshoot; too small and it takes forever. Right now it's <b>${v.toFixed(3)}</b>, so each update moves by <b>${Math.abs(-0.926345 * v).toFixed(6)}</b>.`,
-
-  // Update lab
-  updateOld: (v) => `This is the parameter's value before the update. Think of it as the knob's current position. Right now: <b>${v.toFixed(4)}</b>.`,
-  updateGrad: (v) => `The gradient says which direction and how much to move the parameter. A negative gradient means "increase the parameter", a positive one means "decrease it". Right now: <b>${v.toFixed(4)}</b>.`,
-  updateLR: (v) => `The learning rate scales how big the step is. Small learning rate = tiny careful step. Big learning rate = bold leap. Right now: <b>${v.toFixed(3)}</b>.`,
-
-  // Training loop buttons
-  trainLoopRun: (n) => `Runs ${n} more training iteration${n > 1 ? 's' : ''}. Each iteration is one complete practice round: forward pass, loss, backward pass, update. Watch the loss curve get lower.`,
-
-  // Train all buttons
-  trainAllRun: (n) => `Trains the model on all 8 examples, ${n} time${n > 1 ? 's' : ''}. This is like going through the entire flashcard deck ${n} more time${n > 1 ? 's' : ''}.`,
-
-  // Hidden forward lab
-  hiddenFwdZ: (v) => `This is what neuron 0's pre-activation would be if we changed it. In the real model it's 0.384029. Drag to see what would happen. Right now: <b>${v.toFixed(4)}</b>.`,
-
-  // Full step
-  fullStepBtn: () => `Walk through the next stage of a complete training step: forward pass → loss → backward pass → update. Each click advances one stage so you can see the whole loop piece by piece.`,
-
-  // Check learned
-  checkLearnedBtn: () => `Plays an animation that shows the model's loss shrinking and its probability growing as it trains. This is the visual proof that learning actually happened.`,
-
-  // Predict lab
-  predictSlider: (id) => `Pick any token in the vocabulary. The model then predicts what word it thinks comes next. Right now you've picked <b>"${ID_TO_TOKEN[id]}"</b>.`,
-
-  // Generate
-  genNextBtn: () => `Asks the model to predict the next word, then adds it to the sequence. Each click is one full forward pass through the network.`,
-
-  // Final pipeline stages
-  finalStage: (name) => `Highlights the "${name}" stage of the pipeline. This helps you see where each step fits in the full journey from raw text to a predicted word.`
+  embDim0: (v) => `This is one of the four numbers that makes up the word "The". It's like one ingredient in the word's secret recipe. Right now it's <b>${v.toFixed(4)}</b>.`,
+  embDim1: (v) => `The second ingredient. A positive number pulls the word one way, a negative number pulls it the other. Right now: <b>${v.toFixed(4)}</b>.`,
+  embDim2: (v) => `The third ingredient. Each dimension is one dial describing the word. Right now: <b>${v.toFixed(4)}</b>.`,
+  embDim3: (v) => `The fourth ingredient. Together these four numbers are the entire "meaning" the model stores. Right now: <b>${v.toFixed(4)}</b>.`,
+  neuronWeight: (v) => `The weight is like a volume knob for the input. A big weight means it shouts; a small weight means it whispers. Right now <b>${v.toFixed(4)}</b>, so the input is being turned ${v >= 0 ? 'up' : 'down'}.`,
+  neuronBias: (v) => `The bias is a little extra push added after the input is scaled. It shifts the answer up or down even if the input is zero. Right now: <b>${v.toFixed(4)}</b>.`,
+  reluInput: (v) => `ReLU is a gate: positive numbers pass through, negative numbers become zero. Right now the input is <b>${v.toFixed(4)}</b>, so ReLU will output <b>${Math.max(0,v).toFixed(4)}</b>.`,
+  hiddenZ: (v) => `This is what neuron 0 computes before ReLU. Positive → it "fires". Negative → ReLU turns it off. Right now: <b>${v.toFixed(4)}</b>.`,
+  outputH0: (v) => `Hidden neuron 0's value. It flows into every output neuron, scaled by weight. Right now <b>${v.toFixed(4)}</b>, contributing <b>${(v*0.8).toFixed(4)}</b> to logit 0.`,
+  softmaxLogit0: (v) => `A logit is a raw score. Higher = more likely. Softmax turns scores into percentages that add up to 100%. Right now logit 0 is <b>${v.toFixed(3)}</b>.`,
+  lossP: (v) => `This is the probability the model gave to the correct answer. Confident & right → tiny loss. Confident & wrong → huge loss. Right now P(target) is <b>${v.toFixed(4)}</b>, so loss is <b>${(-Math.log(v)).toFixed(4)}</b>.`,
+  lrLR: (v) => `The learning rate is the size of your steps walking downhill. Too big = overshoot; too small = slow. Right now <b>${v.toFixed(3)}</b>, so each update moves by <b>${Math.abs(-0.926345 * v).toFixed(6)}</b>.`,
+  updateOld: (v) => `The parameter's value before the update. Think of the knob's current position. Right now: <b>${v.toFixed(4)}</b>.`,
+  updateGrad: (v) => `The gradient says which direction and how much to move. Negative = "increase it". Positive = "decrease it". Right now: <b>${v.toFixed(4)}</b>.`,
+  updateLR: (v) => `Scales how big the step is. Small = tiny careful step. Big = bold leap. Right now: <b>${v.toFixed(3)}</b>.`,
+  trainLoopRun: (n) => `Runs ${n} more training iteration${n > 1 ? 's' : ''}. Each is one complete practice round: forward, loss, backward, update. Watch the loss curve drop.`,
+  trainAllRun: (n) => `Trains on all 8 examples, ${n} time${n > 1 ? 's' : ''}. Like going through the flashcard deck ${n} more time${n > 1 ? 's' : ''}.`,
+  hiddenFwdZ: (v) => `What neuron 0's pre-activation would be if changed. In the real model it's 0.384029. Right now: <b>${v.toFixed(4)}</b>.`,
+  fullStepBtn: () => `Walk through the next stage of a complete training step: forward → loss → backward → update.`,
+  checkLearnedBtn: () => `Plays an animation showing loss shrinking and probability growing as the model trains.`,
+  predictSlider: (id) => `Pick any token. The model predicts the next word. You've picked <b>"${ID_TO_TOKEN[id]}"</b>.`,
+  genNextBtn: () => `Asks the model to predict the next word, then adds it to the sequence.`,
+  finalStage: (name) => `Highlights the "${name}" stage so you can see where it fits in the journey from text to prediction.`
 };
 
 // =====================================================================
-//  LIVE TOOLTIP CONTROLLER
+//  TOOLTIP CONTROLLER (translucent)
 // =====================================================================
 const tooltipEl = () => document.getElementById('eliTip');
-let tipTimer = null;
 
 function showTip(target, bodyFn, liveValueFn) {
   const tip = tooltipEl();
@@ -581,26 +555,19 @@ function showTip(target, bodyFn, liveValueFn) {
   const update = () => {
     const value = liveValueFn ? liveValueFn() : null;
     tip.innerHTML = bodyFn(value) + (value !== null && value !== undefined ? `<span class="eli-value">Current value: <span class="eli-num">${typeof value === 'number' ? value.toFixed(4) : value}</span></span>` : '');
-    // Position near the target
     const rect = target.getBoundingClientRect();
     const tipW = 320;
     let x = rect.left + rect.width / 2 - tipW / 2;
     let y = rect.top - 8;
-    // Clamp to viewport
     x = Math.max(8, Math.min(x, window.innerWidth - tipW - 8));
-    // If not enough space above, put below
     const tipH = tip.offsetHeight || 100;
-    if (y - tipH < 8) {
-      y = rect.bottom + 12;
-    } else {
-      y = rect.top - tipH - 12;
-    }
+    if (y - tipH < 8) y = rect.bottom + 12;
+    else y = rect.top - tipH - 12;
     tip.style.left = x + 'px';
     tip.style.top = y + 'px';
   };
   tip.classList.add('show');
   update();
-  // Re-position on scroll/resize while shown
   const reposition = () => update();
   window.addEventListener('scroll', reposition, { passive: true });
   window.addEventListener('resize', reposition);
@@ -609,31 +576,22 @@ function showTip(target, bodyFn, liveValueFn) {
     window.removeEventListener('resize', reposition);
   };
 }
-
 function hideTip() {
   const tip = tooltipEl();
   if (tip) tip.classList.remove('show');
 }
-
-// Generic binder: attaches live tooltip to a range input or button
 function bindLiveTip(el, bodyFn, valueGetter) {
   if (!el) return;
   const show = () => showTip(el, bodyFn, valueGetter);
   el.addEventListener('mouseenter', show);
   el.addEventListener('focus', show);
   el.addEventListener('input', () => { if (tooltipEl().classList.contains('show')) showTip(el, bodyFn, valueGetter); });
-  el.addEventListener('mouseleave', () => {
-    if (el._tipCleanup) el._tipCleanup();
-    hideTip();
-  });
-  el.addEventListener('blur', () => {
-    if (el._tipCleanup) el._tipCleanup();
-    hideTip();
-  });
+  el.addEventListener('mouseleave', () => { if (el._tipCleanup) el._tipCleanup(); hideTip(); });
+  el.addEventListener('blur', () => { if (el._tipCleanup) el._tipCleanup(); hideTip(); });
 }
 
 // =====================================================================
-//  CANVAS RENDERER
+//  CANVAS HELPERS
 // =====================================================================
 function setupCanvas(canvas) {
   const dpr = window.devicePixelRatio || 1;
@@ -1211,389 +1169,41 @@ const VIZ = {
 //  STEPS
 // =====================================================================
 const STEPS = [
-  { number:1, title:"Training Text", viz:"text",
-    purpose:"Provide the raw sentence the model will learn from.",
-    why:"A language model needs examples of real language to learn patterns.",
-    input:"A sentence", process:"Store the sentence as a string.", output:"Raw training text.",
-    math:"text = \"The quick brown fox jumps over the lazy dog\"",
-    eli5:"Before we can teach a computer to read, we need to give it a sentence to look at.",
-    mental:"Think of a single index card with one sentence written on it.",
-    remember:["The model learns from exactly one sentence.","Everything starts from raw text."],
-    quiz:{q:"What is the model's entire training data?",a:"A single sentence."},
-    reverse:{input:"\"The quick brown fox…\"",output:"text string",q:"What happened here?",a:"The raw training text was stored."},
-    memory:{oneLine:"One sentence is the entire training set.",image:"A single index card.",equation:"text = \"The quick brown fox…\"",remember:"The model learns from just one sentence."}
-  },
-  { number:2, title:"Tokenization", viz:"tokens",
-    purpose:"Split the sentence into individual words (tokens).",
-    why:"Computers cannot process raw text — they need discrete units.",
-    input:"The raw text string.", process:"Split the string on spaces.", output:"A list of 9 tokens.",
-    math:"tokens = text.split(' ')",
-    eli5:"We chop the sentence into words, like cutting a sentence into individual beads.",
-    mental:"Imagine the sentence as a row of 9 beads. Each bead is one word.",
-    remember:["Tokenization splits text into words.","Our sentence produces exactly 9 tokens."],
-    quiz:{q:"How many tokens does our training sentence produce?",a:"9 tokens."},
-    reverse:{input:"The quick brown fox…",output:"[\"The\",\"quick\",…]",q:"What happened?",a:"The raw text was split on spaces."},
-    memory:{oneLine:"Split the sentence into words.",image:"Chopping a sentence into beads.",equation:"tokens = text.split(' ')",remember:"Tokenization turns text into words."}
-  },
-  { number:3, title:"Vocabulary", viz:"vocab",
-    purpose:"Assign a unique number (ID) to each token.",
-    why:"Neural networks work with numbers, not words.",
-    input:"The list of 9 tokens.", process:"Map each token to a unique integer.", output:"Vocabulary with 9 entries.",
-    math:"vocab[token] = id",
-    eli5:"We give every word its own phone number so the computer can call it by number.",
-    mental:"A two-column table: words on the left, numbers on the right.",
-    remember:["Each unique token gets a unique ID.","Our vocabulary has 9 entries."],
-    quiz:{q:"What is the ID for 'fox'?",a:"3."},
-    reverse:{input:"[\"The\",\"quick\",…]",output:"{The:0, quick:1, …}",q:"What happened?",a:"Each token was assigned a unique ID."},
-    memory:{oneLine:"Give each word a number.",image:"A dictionary of words and numbers.",equation:"vocab[token] = id",remember:"Vocabulary maps words to numbers."}
-  },
-  { number:4, title:"Training Examples", viz:"trainingExamples",
-    purpose:"Create (context, target) pairs for next-token prediction.",
-    why:"The model learns by predicting the next word.",
-    input:"Token list and vocabulary.", process:"For i from 0 to 7, pair (token[i], token[i+1]).", output:"8 training examples.",
-    math:"example[i] = (token[i], token[i+1])",
-    eli5:"We make flashcards: 'If you see The, the next word should be quick.'",
-    mental:"A stack of 8 flashcards, each with a prompt and an answer.",
-    remember:["We create 8 examples from 9 tokens.","Each example teaches next-word prediction."],
-    quiz:{q:"How many training examples do we create?",a:"8."},
-    reverse:{input:"9 tokens",output:"8 (context, target) pairs",q:"What happened?",a:"Adjacent tokens were paired."},
-    memory:{oneLine:"Turn tokens into flashcards.",image:"A stack of flashcards.",equation:"example[i] = (token[i], token[i+1])",remember:"8 examples teach next-token prediction."}
-  },
-  { number:5, title:"Reverse Vocabulary", viz:"reverseVocab",
-    purpose:"Create a way to turn predicted IDs back into words.",
-    why:"After the model predicts a number, we need to convert it back to a word.",
-    input:"The vocabulary mapping.", process:"Swap keys and values.", output:"Reverse vocab: 0→The, 1→quick, …",
-    math:"reverseVocab[id] = token",
-    eli5:"It's like having a phone book that works backwards.",
-    mental:"A two-column table with numbers on the left and words on the right.",
-    remember:["Reverse vocab lets us decode predictions.","Without it, we'd only get numbers."],
-    quiz:{q:"Why do we need reverse vocabulary?",a:"To convert predicted IDs back into words."},
-    reverse:{input:"{The:0, quick:1, …}",output:"{0:The, 1:quick, …}",q:"What happened?",a:"The vocabulary mapping was reversed."},
-    memory:{oneLine:"Numbers back to words.",image:"A reverse phone book.",equation:"reverseVocab[id] = token",remember:"Reverse vocab decodes predictions."}
-  },
-  { number:6, title:"Embeddings", viz:"embedding",
-    purpose:"Convert each token ID into a vector of numbers (embedding).",
-    why:"Neural networks need numerical input, and embeddings capture meaning.",
-    input:"A token ID.", process:"Look up a learned vector of 4 floating-point numbers.", output:"For 'The': [0.278854, -0.949978, -0.449941, -0.553579]",
-    math:"embedding = embeddingMatrix[tokenId]",
-    eli5:"Each word gets a secret code of 4 numbers that describes its meaning.",
-    mental:"Imagine each word as a point in a 4-dimensional space.",
-    remember:["Embeddings are learned vectors.","Our embedding size is 4."],
-    quiz:{q:"What is the embedding for 'The'?",a:"[0.278854, -0.949978, -0.449941, -0.553579]"},
-    reverse:{input:"tokenId = 0",output:"[0.278854, …]",q:"What happened?",a:"The ID was mapped through the embedding matrix."},
-    memory:{oneLine:"Words become vectors of numbers.",image:"Each word is a point in 4D space.",equation:"embedding = embeddingMatrix[tokenId]",remember:"Embeddings turn words into numbers."},
-    lab:{type:"embedding"}
-  },
-  { number:7, title:"First Neuron", viz:"neuron",
-    purpose:"Compute a weighted sum of inputs plus a bias.",
-    why:"This is the fundamental operation of a neural network.",
-    input:"4 input values, 4 weights, 1 bias.", process:"Multiply, sum, add bias.", output:"A single number z.",
-    math:"z = x₁w₁ + x₂w₂ + x₃w₃ + x₄w₄ + b",
-    eli5:"Think of each input as a volume knob. The weight says how loud.",
-    mental:"A mixing board combining 4 inputs into one signal.",
-    remember:["z = weighted sum + bias.","The bias shifts the result up or down."],
-    quiz:{q:"What is the formula for a single neuron?",a:"z = x₁w₁ + x₂w₂ + x₃w₃ + x₄w₄ + b"},
-    reverse:{input:"x = [0.278854, …]",output:"z = 0.384029",q:"What happened?",a:"The embedding was multiplied by weights, summed, and bias added."},
-    memory:{oneLine:"Multiply, sum, add bias.",image:"A mixing board.",equation:"z = Σ(xᵢwᵢ) + b",remember:"A neuron computes a weighted sum plus bias."},
-    lab:{type:"neuron"}
-  },
-  { number:8, title:"ReLU", viz:"relu",
-    purpose:"Apply a non-linear activation: replace negative values with zero.",
-    why:"Without non-linearity, the network could only learn linear relationships.",
-    input:"The pre-activation z.", process:"If z > 0, output z; else 0.", output:"ReLU(z) = max(0, z)",
-    math:"ReLU(z) = max(0, z)",
-    eli5:"A gate that lets positive numbers through and blocks negative numbers.",
-    mental:"A one-way valve.",
-    remember:["ReLU blocks negatives.","ReLU adds non-linearity."],
-    quiz:{q:"What does ReLU do to a negative number?",a:"It turns it into zero."},
-    reverse:{input:"z = -0.032770",output:"0.000000",q:"What happened?",a:"ReLU saw a negative and replaced it with zero."},
-    memory:{oneLine:"Negative → zero, positive → unchanged.",image:"A one-way valve.",equation:"ReLU(z) = max(0, z)",remember:"ReLU keeps positives and zeroes negatives."},
-    lab:{type:"relu"}
-  },
-  { number:9, title:"Hidden Layer", viz:"hiddenLayer",
-    purpose:"Run multiple neurons in parallel to create a hidden representation.",
-    why:"Multiple neurons let the network learn different features.",
-    input:"The 4-dimensional embedding.", process:"4 neurons compute z = Σ(xᵢwᵢ) + b, then ReLU.", output:"4 hidden values.",
-    math:"hⱼ = ReLU(Σ(xᵢwᵢⱼ) + bⱼ)",
-    eli5:"Four different students each look at the same word and write down their opinion.",
-    mental:"A committee of 4 experts.",
-    remember:["Hidden layer has 4 neurons.","Each neuron produces one ReLU output."],
-    quiz:{q:"How many hidden neurons does our model have?",a:"4."},
-    reverse:{input:"embedding = [0.278854, …]",output:"[0.384029, 0, 0, 0.796667]",q:"What happened?",a:"Four neurons each computed their own weighted sum + bias and applied ReLU."},
-    memory:{oneLine:"A committee of 4 neurons.",image:"Four experts each giving a score.",equation:"h = ReLU(Wx + b)",remember:"The hidden layer creates 4 values."},
-    lab:{type:"hidden"}
-  },
-  { number:10, title:"Output Layer", viz:"outputLayer",
-    purpose:"Produce one logit per vocabulary token.",
-    why:"We need a score for every possible next word.",
-    input:"The 4 hidden values.", process:"9 output neurons each compute weighted sum + bias.", output:"9 logits.",
-    math:"logitₖ = Σ(hⱼ · wⱼₖ) + bₖ",
-    eli5:"Nine judges each look at the committee's opinions and give a score.",
-    mental:"A row of 9 scoreboards.",
-    remember:["Output layer has 9 neurons.","Outputs are called logits."],
-    quiz:{q:"How many output neurons are there?",a:"9."},
-    reverse:{input:"hidden = [0.384029, 0, 0, 0.796667]",output:"9 logits",q:"What happened?",a:"Each output neuron computed a weighted sum plus bias."},
-    memory:{oneLine:"One score per word.",image:"Nine judges scoring words.",equation:"logit = Wᵀh + b",remember:"Output layer produces 9 logits."},
-    lab:{type:"output"}
-  },
-  { number:11, title:"Softmax", viz:"softmax",
-    purpose:"Convert logits into probabilities that sum to 1.",
-    why:"We need a probability distribution to make predictions and compute loss.",
-    input:"9 logits.", process:"Exponentiate each, divide by the sum.", output:"9 probabilities that sum to 1.",
-    math:"P(tokenᵢ) = exp(logitᵢ) / Σ exp(logitⱼ)",
-    eli5:"Turn the scores into percentages.",
-    mental:"A pie chart where each slice is a word.",
-    remember:["Softmax turns scores into probabilities.","All probabilities sum to 1."],
-    quiz:{q:"What do all softmax probabilities sum to?",a:"1."},
-    reverse:{input:"logits = [1.2, -0.5, …]",output:"probabilities = [0.42, 0.08, …]",q:"What happened?",a:"Each logit was exponentiated and divided by the sum."},
-    memory:{oneLine:"Scores become probabilities.",image:"A pie chart.",equation:"P(tokenᵢ) = exp(logitᵢ) / Σ exp(logitⱼ)",remember:"Softmax produces probabilities that sum to 1."},
-    lab:{type:"softmax"}
-  },
-  { number:12, title:"Loss", viz:"loss",
-    purpose:"Measure how wrong the prediction was.",
-    why:"The model needs a single number that says 'how bad was that?'",
-    input:"The predicted probability of the correct token.", process:"Negative logarithm of P(target).", output:"A loss value. Lower is better.",
-    math:"Loss = -log(P(target))",
-    eli5:"If you were 100% sure and correct, loss is 0.",
-    mental:"A penalty score.",
-    remember:["Loss = -log(P(target)).","Lower loss means better prediction."],
-    quiz:{q:"What does a loss of 0 mean?",a:"The model predicted the correct token with 100% probability."},
-    reverse:{input:"P(target) = 0.073655",output:"Loss = 2.608369",q:"What happened?",a:"The negative logarithm of 0.073655 was taken."},
-    memory:{oneLine:"How wrong was the prediction?",image:"A penalty score.",equation:"Loss = -log(P(target))",remember:"Loss measures wrongness; lower is better."},
-    lab:{type:"loss"}
-  },
-  { number:13, title:"Logit Gradients", viz:"gradients",
-    purpose:"Compute how much each logit contributed to the loss.",
-    why:"We need to know which logits to push up or down.",
-    input:"Probabilities and the target token.", process:"Target: p - 1. Others: p.", output:"9 gradients.",
-    math:"gradientᵢ = P(tokenᵢ) - targetᵢ",
-    eli5:"If the model was too confident about the wrong word, that word gets a big positive gradient.",
-    mental:"A list of adjustments.",
-    remember:["Gradient = probability - target.","Target word gets negative gradient."],
-    quiz:{q:"What is the gradient for the target token?",a:"P(target) - 1."},
-    reverse:{input:"P(quick) = 0.073655",output:"gradient(quick) = -0.926345",q:"What happened?",a:"The target's probability minus 1 gave its gradient."},
-    memory:{oneLine:"How much each logit should change.",image:"Adjustment notes.",equation:"gradientᵢ = P(tokenᵢ) - targetᵢ",remember:"Gradients point toward the correct answer."}
-  },
-  { number:14, title:"Output Weight Gradients", viz:"weightGradients",
-    purpose:"Compute how much each output weight contributed to the error.",
-    why:"We need to know which weights to change and by how much.",
-    input:"Logit gradients and hidden values.", process:"Multiply gradient by hidden value.", output:"Weight gradients.",
-    math:"weight gradient = logit gradient × hidden value",
-    eli5:"If a hidden neuron was very active and the output was wrong, that connection gets a big adjustment.",
-    mental:"Blame assignment.",
-    remember:["Weight gradient = logit gradient × hidden value.","Active neurons get bigger gradients."],
-    quiz:{q:"How do we compute an output weight gradient?",a:"Multiply logit gradient by hidden value."},
-    reverse:{input:"logitGrad = -0.926345, hidden = 0.384029",output:"weightGrad = -0.355700",q:"What happened?",a:"Logit gradient was multiplied by hidden value."},
-    memory:{oneLine:"Blame the active neurons.",image:"Blame assignment.",equation:"Δw = gradient × hidden",remember:"Weight gradients combine error and activity."}
-  },
-  { number:15, title:"Output Bias Gradients", viz:"biasGradients",
-    purpose:"Compute how much each output bias contributed to the error.",
-    why:"Biases also need to be adjusted.",
-    input:"Logit gradients.", process:"Bias gradient = logit gradient.", output:"Bias gradients.",
-    math:"bias gradient = logit gradient",
-    eli5:"The bias gets the same blame as the logit it produced.",
-    mental:"A constant offset adjusted by error.",
-    remember:["Bias gradient = logit gradient.","Biases shift the output up or down."],
-    quiz:{q:"What is the bias gradient equal to?",a:"The logit gradient."},
-    reverse:{input:"logitGrad = -0.926345",output:"biasGrad = -0.926345",q:"What happened?",a:"The bias gradient is simply the logit gradient."},
-    memory:{oneLine:"Bias gets the same blame.",image:"A constant offset.",equation:"Δb = gradient",remember:"Bias gradient = logit gradient."}
-  },
-  { number:16, title:"Learning Rate", viz:"learningRate",
-    purpose:"Control how big each parameter update step is.",
-    why:"Without a learning rate, updates could be too large or too small.",
-    input:"A chosen number (e.g., 0.1).", process:"Multiply gradient by learning rate.", output:"The actual step size.",
-    math:"step = learning rate × gradient",
-    eli5:"The learning rate is like the size of the steps you take walking down a hill.",
-    mental:"A volume knob for learning speed.",
-    remember:["Learning rate controls update size.","Our learning rate is 0.1."],
-    quiz:{q:"What is our learning rate?",a:"0.1"},
-    reverse:{input:"gradient = -0.926345, lr = 0.1",output:"step = -0.0926345",q:"What happened?",a:"The gradient was multiplied by the learning rate."},
-    memory:{oneLine:"How big is each learning step?",image:"Step size walking down a hill.",equation:"step = learning rate × gradient",remember:"Learning rate scales the gradient."},
-    lab:{type:"lr"}
-  },
-  { number:17, title:"First Parameter Update", viz:"parameterUpdate",
-    purpose:"Adjust the output weights and biases using the gradients.",
-    why:"This is how the model actually learns.",
-    input:"Old parameters, learning rate, gradients.", process:"new = old - learning rate × gradient.", output:"Updated weights and biases.",
-    math:"new parameter = old parameter - learning rate × gradient",
-    eli5:"Take a small step in the direction that makes the error smaller.",
-    mental:"Adjusting knobs on a machine.",
-    remember:["new = old - lr × gradient.","This is the core learning step."],
-    quiz:{q:"What is the parameter update formula?",a:"new = old - learning rate × gradient"},
-    reverse:{input:"old = 0.5, lr = 0.1, grad = -0.926345",output:"new = 0.5926",q:"What happened?",a:"Old parameter was updated by subtracting lr × gradient."},
-    memory:{oneLine:"Nudge parameters to reduce error.",image:"Turning knobs.",equation:"new = old - lr × gradient",remember:"Parameters move opposite to the gradient."},
-    lab:{type:"update"}
-  },
-  { number:18, title:"Verify Learning Update", viz:"parameterUpdate",
-    purpose:"Confirm that the parameter update actually changed the output.",
-    why:"We need to verify that learning is happening.",
-    input:"Old parameters, new parameters.", process:"Re-run forward pass and compare.", output:"New prediction with different probabilities.",
-    math:"compare P(target) before and after",
-    eli5:"Check if the model's answer changed after the update.",
-    mental:"Re-taking a test after studying.",
-    remember:["Always verify that updates change behavior.","A changed prediction means learning occurred."],
-    quiz:{q:"Why do we verify the update?",a:"To confirm parameters actually changed the prediction."},
-    reverse:{input:"old P(quick)=0.0737",output:"new P(quick)=0.0921",q:"What happened?",a:"After updating, the forward pass produced a higher probability."},
-    memory:{oneLine:"Check that learning changed the answer.",image:"Re-taking a test.",equation:"compare before vs after",remember:"Verify that updates improve prediction."}
-  },
-  { number:19, title:"Training Loop", viz:"trainingLoop",
-    purpose:"Repeat forward pass, loss, backward pass, and update many times.",
-    why:"One update is not enough — the model needs repetition.",
-    input:"Training data, current parameters.", process:"For each iteration: forward → loss → backward → update.", output:"Decreasing loss.",
-    math:"for epoch in range(n): forward(); backward(); update()",
-    eli5:"Practice makes perfect.",
-    mental:"A loop: predict → check → adjust → repeat.",
-    remember:["Training is repetition.","Each loop: forward, loss, backward, update."],
-    quiz:{q:"What are the four stages of the training loop?",a:"Forward, loss, backward, update."},
-    reverse:{input:"iteration 1, iteration 2, …",output:"loss decreases",q:"What happened?",a:"The model repeatedly performed forward and backward passes."},
-    memory:{oneLine:"Predict, check, adjust, repeat.",image:"A loop.",equation:"for each step: forward; backward; update",remember:"Training is a loop."},
-    lab:{type:"trainingLoop"}
-  },
-  { number:20, title:"Verify Hidden Forward Pass", viz:"hiddenLayer",
-    purpose:"Confirm the hidden layer produces the expected values.",
-    why:"We need to trust the hidden layer before backpropagating.",
-    input:"Verified embedding for 'The'.", process:"Compute hidden values with verified weights.", output:"Hidden outputs: [0.384029, 0, 0, 0.796667]",
-    math:"hⱼ = ReLU(Σ(xᵢwᵢⱼ) + bⱼ)",
-    eli5:"Double-check the committee's scores.",
-    mental:"Checking your work before moving on.",
-    remember:["Verified hidden outputs: [0.384029, 0, 0, 0.796667].","ReLU derivatives: [1, 0, 0, 1]."],
-    quiz:{q:"What are the verified hidden outputs?",a:"[0.384029, 0, 0, 0.796667]"},
-    reverse:{input:"embedding = [0.278854, …]",output:"hidden = [0.384029, 0, 0, 0.796667]",q:"What happened?",a:"The hidden-layer forward pass was verified."},
-    memory:{oneLine:"Trust but verify.",image:"Checking your work.",equation:"h = ReLU(Wx + b)",remember:"Hidden outputs verified as [0.384029, 0, 0, 0.796667]."},
-    lab:{type:"hiddenForward"}
-  },
-  { number:21, title:"Hidden-Layer Backpropagation", viz:"hiddenLayer",
-    purpose:"Send the error signal backward through the hidden layer.",
-    why:"Hidden neurons also contributed to the error.",
-    input:"Output gradients, output weights, ReLU derivatives.", process:"Sum (outputGrad × weight), multiply by ReLU derivative.", output:"Hidden gradients.",
-    math:"hiddenGradⱼ = ReLU'(zⱼ) × Σ(outputGradₖ × wⱼₖ)",
-    eli5:"The committee members also need to know how much they contributed.",
-    mental:"Error flows backward like a wave.",
-    remember:["Backprop sends error backward.","ReLU derivative gates the gradient."],
-    quiz:{q:"What gates the hidden gradient?",a:"The ReLU derivative."},
-    reverse:{input:"outputGrad, weights, ReLU'",output:"hiddenGrad",q:"What happened?",a:"Output gradients were multiplied by weights and gated by ReLU derivatives."},
-    memory:{oneLine:"Error flows backward.",image:"A wave returning to its source.",equation:"hiddenGrad = ReLU' × (Wᵀ × outputGrad)",remember:"ReLU derivative gates hidden gradients."}
-  },
-  { number:22, title:"Hidden-Weight Gradients", viz:"weightGradients",
-    purpose:"Compute how much each hidden weight contributed to the error.",
-    why:"Hidden weights need to be adjusted.",
-    input:"Hidden gradients, input embedding values.", process:"Multiply hidden gradient by input value.", output:"Weight gradients.",
-    math:"hidden weight gradient = hidden gradient × input value",
-    eli5:"If an input was very active and the hidden neuron was wrong, that connection gets a big adjustment.",
-    mental:"Blame assignment for the hidden layer.",
-    remember:["Hidden weight gradient = hidden gradient × input.","This tells us how to adjust hidden weights."],
-    quiz:{q:"How do we compute a hidden weight gradient?",a:"Multiply hidden gradient by input value."},
-    reverse:{input:"hiddenGrad = -0.2, input = 0.278854",output:"weightGrad = -0.055771",q:"What happened?",a:"The hidden gradient was multiplied by the input value."},
-    memory:{oneLine:"Blame the inputs.",image:"Assigning blame to connections.",equation:"Δw_hidden = hiddenGrad × input",remember:"Hidden weight gradients combine error and input."}
-  },
-  { number:23, title:"Hidden-Bias Gradients", viz:"biasGradients",
-    purpose:"Compute how much each hidden bias contributed to the error.",
-    why:"Hidden biases also need adjustment.",
-    input:"Hidden gradients.", process:"Bias gradient = hidden gradient.", output:"Bias gradients.",
-    math:"hidden bias gradient = hidden gradient",
-    eli5:"The bias gets the same blame as the neuron it belongs to.",
-    mental:"A constant offset adjusted by error.",
-    remember:["Hidden bias gradient = hidden gradient.","Biases shift the neuron's output."],
-    quiz:{q:"What is the hidden bias gradient equal to?",a:"The hidden gradient."},
-    reverse:{input:"hiddenGrad = -0.2",output:"biasGrad = -0.2",q:"What happened?",a:"The hidden bias gradient is simply the hidden gradient."},
-    memory:{oneLine:"Bias gets the error signal.",image:"A constant offset.",equation:"Δb_hidden = hiddenGrad",remember:"Hidden bias gradient = hidden gradient."}
-  },
-  { number:24, title:"Hidden-Layer Parameter Update", viz:"parameterUpdate",
-    purpose:"Adjust hidden weights and biases using their gradients.",
-    why:"This completes the learning step for the hidden layer.",
-    input:"Old hidden parameters, learning rate, gradients.", process:"new = old - lr × gradient.", output:"Updated hidden weights and biases.",
-    math:"new hidden parameter = old - learning rate × gradient",
-    eli5:"Turn the hidden layer's knobs a little bit in the direction that reduces error.",
-    mental:"Adjusting the internal machinery.",
-    remember:["Hidden parameters also update.","Same formula: new = old - lr × gradient."],
-    quiz:{q:"How do hidden parameters update?",a:"new = old - learning rate × gradient."},
-    reverse:{input:"old = 0.5, lr = 0.1, grad = -0.2",output:"new = 0.52",q:"What happened?",a:"The hidden parameter was updated by subtracting lr × gradient."},
-    memory:{oneLine:"Adjust hidden knobs.",image:"Turning the hidden layer's knobs.",equation:"new = old - lr × gradient",remember:"Hidden parameters update the same way."}
-  },
-  { number:25, title:"Update Everything Together", viz:"trainingLoop",
-    purpose:"Perform a complete training step: forward, backward, and update all parameters.",
-    why:"In practice, all parameters are updated in one coordinated step.",
-    input:"Training example, current parameters.", process:"Forward → loss → backward → update all.", output:"A fully updated model.",
-    math:"forward(); loss(); backward(); updateAll()",
-    eli5:"One complete practice round.",
-    mental:"A full cycle of the learning loop.",
-    remember:["One training step updates all parameters.","Forward → loss → backward → update."],
-    quiz:{q:"What happens in one complete training step?",a:"Forward, loss, backward, update."},
-    reverse:{input:"one training example",output:"updated model parameters",q:"What happened?",a:"A complete forward and backward pass was performed."},
-    memory:{oneLine:"One full cycle of learning.",image:"A complete practice round.",equation:"forward → loss → backward → updateAll",remember:"One step updates every parameter."},
-    lab:{type:"trainingLoop"}
-  },
-  { number:26, title:"Train Across All 8 Examples", viz:"trainingLoop",
-    purpose:"Run the training loop over all training examples.",
-    why:"The model needs to see all examples.",
-    input:"All 8 training examples.", process:"For each: forward, loss, backward, update. Repeat.", output:"A trained model.",
-    math:"for example in examples: trainStep(example)",
-    eli5:"Practice all 8 flashcards, over and over.",
-    mental:"Going through the entire deck multiple times.",
-    remember:["Train on all 8 examples.","Multiple iterations improve learning."],
-    quiz:{q:"How many training examples per iteration?",a:"8."},
-    reverse:{input:"8 examples, many iterations",output:"model learns patterns",q:"What happened?",a:"The model repeatedly trained on all 8 examples."},
-    memory:{oneLine:"Practice all examples repeatedly.",image:"Going through a deck.",equation:"for each example: trainStep()",remember:"Training over all examples improves the model."},
-    lab:{type:"trainAll"}
-  },
-  { number:27, title:"Check Whether the Model Learned", viz:"learnedCheck",
-    purpose:"Compare predictions before and after training.",
-    why:"We need evidence that learning actually happened.",
-    input:"Untrained and trained predictions.", process:"Compare loss and target probabilities.", output:"Loss decreased, P(target) increased.",
-    math:"compare(Loss_before, Loss_after)",
-    eli5:"Check the score before and after studying.",
-    mental:"A before-and-after photo.",
-    remember:["Loss decreased by 2.058383.","P(quick) increased by 0.503304."],
-    quiz:{q:"What were the loss and P(quick) at step 1 vs step 20?",a:"Step 1: loss=2.608, P=0.074. Step 20: loss=0.550, P=0.577."},
-    reverse:{input:"before: loss=2.608",output:"after: loss=0.550",q:"What happened?",a:"The model's loss decreased significantly."},
-    memory:{oneLine:"Check if the model got better.",image:"A before-and-after comparison.",equation:"compare(Loss_before, Loss_after)",remember:"Loss went from 2.608 to 0.550."},
-    lab:{type:"checkLearned"}
-  },
-  { number:28, title:"Build Prediction Function", viz:"neuron",
-    purpose:"Create a function that predicts the next token from an input token.",
-    why:"We need a reusable way to make predictions.",
-    input:"An input token.", process:"Token → ID → embedding → hidden → logits → softmax → predicted token.", output:"The predicted next token and its probability.",
-    math:"predict(token) = reverseVocab[argmax(softmax(forward(embed(token))))]",
-    eli5:"A machine that takes a word and tells you what word it thinks comes next.",
-    mental:"A complete pipeline: word in, prediction out.",
-    remember:["Prediction = token → embedding → hidden → logits → softmax → token.","This is inference (no learning)."],
-    quiz:{q:"What is the prediction pipeline?",a:"Token → ID → embedding → hidden → output → softmax → token."},
-    reverse:{input:"token = \"The\"",output:"predicted next = \"quick\"",q:"What happened?",a:"The input token was embedded and passed through the network."},
-    memory:{oneLine:"Word in, prediction out.",image:"A pipeline from word to word.",equation:"predict(token) = argmax(softmax(forward(embed(token))))",remember:"Prediction uses the trained network."},
-    lab:{type:"predict"}
-  },
-  { number:29, title:"Generate Text", viz:"trainingLoop",
-    purpose:"Use the model to generate a sequence of words.",
-    why:"This shows what the model has learned in a creative way.",
-    input:"A starting token.", process:"Predict next token, append it, repeat.", output:"A generated sequence.",
-    math:"while len < max: next = predict(current); append(next)",
-    eli5:"The model writes a sentence one word at a time.",
-    mental:"A word-by-word story generator.",
-    remember:["Generation = repeated prediction.","Temperature can control randomness."],
-    quiz:{q:"How does text generation work?",a:"Predict the next token, add it, repeat."},
-    reverse:{input:"start = \"The\"",output:"\"The quick brown fox…\"",q:"What happened?",a:"The model repeatedly predicted the next token and appended it."},
-    memory:{oneLine:"Generate one word at a time.",image:"A word-by-word story generator.",equation:"next = predict(current)",remember:"Generation repeats prediction."},
-    lab:{type:"generate"}
-  },
-  { number:30, title:"Final End-to-End Test", viz:"finalPipeline",
-    purpose:"See the entire pipeline from text to prediction in one view.",
-    why:"This confirms you understand the complete system.",
-    input:"Raw text.", process:"Text → tokens → embeddings → hidden → logits → softmax → prediction.", output:"A complete prediction.",
-    math:"full pipeline: text → token → embedding → hidden → logits → softmax → prediction",
-    eli5:"Watch the whole machine work from start to finish.",
-    mental:"A transparent factory.",
-    remember:["You now understand the complete training loop.","Text → tokens → numbers → hidden → logits → probabilities → prediction."],
-    quiz:{q:"What are the major stages of the full pipeline?",a:"Text → tokens → embeddings → hidden → logits → softmax → prediction."},
-    reverse:{input:"\"The quick brown fox…\"",output:"predicted next token",q:"What happened?",a:"The entire pipeline processed the text from tokenization to prediction."},
-    memory:{oneLine:"The whole machine.",image:"A transparent factory.",equation:"text → tokens → embeddings → hidden → logits → softmax → prediction",remember:"You understand the complete tiny LLM pipeline."},
-    lab:{type:"final"}
-  }
+  { number:1, title:"Training Text", viz:"text", purpose:"Provide the raw sentence the model will learn from.", why:"A language model needs examples of real language.", input:"A sentence", process:"Store the sentence as a string.", output:"Raw training text.", math:"text = \"The quick brown fox jumps over the lazy dog\"", eli5:"Before we can teach a computer to read, we need to give it a sentence to look at.", mental:"Think of a single index card with one sentence on it.", remember:["The model learns from exactly one sentence.","Everything starts from raw text."], quiz:{q:"What is the model's entire training data?",a:"A single sentence."}, reverse:{input:"\"The quick brown fox…\"",output:"text string",q:"What happened here?",a:"The raw training text was stored."}, memory:{oneLine:"One sentence is the entire training set.",image:"A single index card.",equation:"text = \"The quick brown fox…\"",remember:"The model learns from just one sentence."} },
+  { number:2, title:"Tokenization", viz:"tokens", purpose:"Split the sentence into individual words (tokens).", why:"Computers cannot process raw text.", input:"The raw text string.", process:"Split the string on spaces.", output:"A list of 9 tokens.", math:"tokens = text.split(' ')", eli5:"We chop the sentence into words, like cutting a sentence into beads.", mental:"Imagine the sentence as a row of 9 beads.", remember:["Tokenization splits text into words.","Our sentence produces exactly 9 tokens."], quiz:{q:"How many tokens does our training sentence produce?",a:"9 tokens."}, reverse:{input:"The quick brown fox…",output:"[\"The\",\"quick\",…]",q:"What happened?",a:"The raw text was split on spaces."}, memory:{oneLine:"Split the sentence into words.",image:"Chopping a sentence into beads.",equation:"tokens = text.split(' ')",remember:"Tokenization turns text into words."} },
+  { number:3, title:"Vocabulary", viz:"vocab", purpose:"Assign a unique number (ID) to each token.", why:"Neural networks work with numbers.", input:"The list of 9 tokens.", process:"Map each token to a unique integer.", output:"Vocabulary with 9 entries.", math:"vocab[token] = id", eli5:"We give every word its own phone number.", mental:"A two-column table.", remember:["Each unique token gets a unique ID.","Our vocabulary has 9 entries."], quiz:{q:"What is the ID for 'fox'?",a:"3."}, reverse:{input:"[\"The\",\"quick\",…]",output:"{The:0, quick:1, …}",q:"What happened?",a:"Each token was assigned a unique ID."}, memory:{oneLine:"Give each word a number.",image:"A dictionary of words and numbers.",equation:"vocab[token] = id",remember:"Vocabulary maps words to numbers."} },
+  { number:4, title:"Training Examples", viz:"trainingExamples", purpose:"Create (context, target) pairs for next-token prediction.", why:"The model learns by predicting the next word.", input:"Token list and vocabulary.", process:"Pair (token[i], token[i+1]).", output:"8 training examples.", math:"example[i] = (token[i], token[i+1])", eli5:"We make flashcards: 'If you see The, the next word should be quick.'", mental:"A stack of 8 flashcards.", remember:["We create 8 examples from 9 tokens.","Each example teaches next-word prediction."], quiz:{q:"How many training examples do we create?",a:"8."}, reverse:{input:"9 tokens",output:"8 (context, target) pairs",q:"What happened?",a:"Adjacent tokens were paired."}, memory:{oneLine:"Turn tokens into flashcards.",image:"A stack of flashcards.",equation:"example[i] = (token[i], token[i+1])",remember:"8 examples teach next-token prediction."} },
+  { number:5, title:"Reverse Vocabulary", viz:"reverseVocab", purpose:"Create a way to turn predicted IDs back into words.", why:"We need to convert predicted numbers back to words.", input:"The vocabulary mapping.", process:"Swap keys and values.", output:"Reverse vocab.", math:"reverseVocab[id] = token", eli5:"It's like having a phone book that works backwards.", mental:"A two-column table.", remember:["Reverse vocab lets us decode predictions.","Without it, we'd only get numbers."], quiz:{q:"Why do we need reverse vocabulary?",a:"To convert predicted IDs back into words."}, reverse:{input:"{The:0, quick:1, …}",output:"{0:The, 1:quick, …}",q:"What happened?",a:"The vocabulary mapping was reversed."}, memory:{oneLine:"Numbers back to words.",image:"A reverse phone book.",equation:"reverseVocab[id] = token",remember:"Reverse vocab decodes predictions."} },
+  { number:6, title:"Embeddings", viz:"embedding", purpose:"Convert each token ID into a vector of numbers (embedding).", why:"Neural networks need numerical input.", input:"A token ID.", process:"Look up a learned vector of 4 numbers.", output:"For 'The': [0.278854, -0.949978, -0.449941, -0.553579]", math:"embedding = embeddingMatrix[tokenId]", eli5:"Each word gets a secret code of 4 numbers that describes its meaning.", mental:"Each word as a point in a 4-dimensional space.", remember:["Embeddings are learned vectors.","Our embedding size is 4."], quiz:{q:"What is the embedding for 'The'?",a:"[0.278854, -0.949978, -0.449941, -0.553579]"}, reverse:{input:"tokenId = 0",output:"[0.278854, …]",q:"What happened?",a:"The ID was mapped through the embedding matrix."}, memory:{oneLine:"Words become vectors of numbers.",image:"Each word is a point in 4D space.",equation:"embedding = embeddingMatrix[tokenId]",remember:"Embeddings turn words into numbers."}, lab:{type:"embedding"} },
+  { number:7, title:"First Neuron", viz:"neuron", purpose:"Compute a weighted sum of inputs plus a bias.", why:"This is the fundamental operation of a neural network.", input:"4 input values, 4 weights, 1 bias.", process:"Multiply, sum, add bias.", output:"A single number z.", math:"z = x₁w₁ + x₂w₂ + x₃w₃ + x₄w₄ + b", eli5:"Think of each input as a volume knob. The weight says how loud.", mental:"A mixing board combining 4 inputs.", remember:["z = weighted sum + bias.","The bias shifts the result up or down."], quiz:{q:"What is the formula for a single neuron?",a:"z = x₁w₁ + x₂w₂ + x₃w₃ + x₄w₄ + b"}, reverse:{input:"x = [0.278854, …]",output:"z = 0.384029",q:"What happened?",a:"The embedding was multiplied by weights, summed, and bias added."}, memory:{oneLine:"Multiply, sum, add bias.",image:"A mixing board.",equation:"z = Σ(xᵢwᵢ) + b",remember:"A neuron computes a weighted sum plus bias."}, lab:{type:"neuron"} },
+  { number:8, title:"ReLU", viz:"relu", purpose:"Apply a non-linear activation: replace negative values with zero.", why:"Without non-linearity, the network could only learn linear relationships.", input:"The pre-activation z.", process:"If z > 0, output z; else 0.", output:"ReLU(z) = max(0, z)", math:"ReLU(z) = max(0, z)", eli5:"A gate that lets positive numbers through and blocks negative numbers.", mental:"A one-way valve.", remember:["ReLU blocks negatives.","ReLU adds non-linearity."], quiz:{q:"What does ReLU do to a negative number?",a:"It turns it into zero."}, reverse:{input:"z = -0.032770",output:"0.000000",q:"What happened?",a:"ReLU saw a negative and replaced it with zero."}, memory:{oneLine:"Negative → zero, positive → unchanged.",image:"A one-way valve.",equation:"ReLU(z) = max(0, z)",remember:"ReLU keeps positives and zeroes negatives."}, lab:{type:"relu"} },
+  { number:9, title:"Hidden Layer", viz:"hiddenLayer", purpose:"Run multiple neurons in parallel to create a hidden representation.", why:"Multiple neurons let the network learn different features.", input:"The 4-dimensional embedding.", process:"4 neurons compute z = Σ(xᵢwᵢ) + b, then ReLU.", output:"4 hidden values.", math:"hⱼ = ReLU(Σ(xᵢwᵢⱼ) + bⱼ)", eli5:"Four students each look at the same word and write down their opinion.", mental:"A committee of 4 experts.", remember:["Hidden layer has 4 neurons.","Each neuron produces one ReLU output."], quiz:{q:"How many hidden neurons does our model have?",a:"4."}, reverse:{input:"embedding = [0.278854, …]",output:"[0.384029, 0, 0, 0.796667]",q:"What happened?",a:"Four neurons each computed their own weighted sum + bias and applied ReLU."}, memory:{oneLine:"A committee of 4 neurons.",image:"Four experts each giving a score.",equation:"h = ReLU(Wx + b)",remember:"The hidden layer creates 4 values."}, lab:{type:"hidden"} },
+  { number:10, title:"Output Layer", viz:"outputLayer", purpose:"Produce one logit per vocabulary token.", why:"We need a score for every possible next word.", input:"The 4 hidden values.", process:"9 output neurons each compute weighted sum + bias.", output:"9 logits.", math:"logitₖ = Σ(hⱼ · wⱼₖ) + bₖ", eli5:"Nine judges each look at the committee's opinions and give a score.", mental:"A row of 9 scoreboards.", remember:["Output layer has 9 neurons.","Outputs are called logits."], quiz:{q:"How many output neurons are there?",a:"9."}, reverse:{input:"hidden = [0.384029, 0, 0, 0.796667]",output:"9 logits",q:"What happened?",a:"Each output neuron computed a weighted sum plus bias."}, memory:{oneLine:"One score per word.",image:"Nine judges scoring words.",equation:"logit = Wᵀh + b",remember:"Output layer produces 9 logits."}, lab:{type:"output"} },
+  { number:11, title:"Softmax", viz:"softmax", purpose:"Convert logits into probabilities that sum to 1.", why:"We need a probability distribution to make predictions.", input:"9 logits.", process:"Exponentiate each, divide by the sum.", output:"9 probabilities that sum to 1.", math:"P(tokenᵢ) = exp(logitᵢ) / Σ exp(logitⱼ)", eli5:"Turn the scores into percentages.", mental:"A pie chart where each slice is a word.", remember:["Softmax turns scores into probabilities.","All probabilities sum to 1."], quiz:{q:"What do all softmax probabilities sum to?",a:"1."}, reverse:{input:"logits = [1.2, -0.5, …]",output:"probabilities = [0.42, 0.08, …]",q:"What happened?",a:"Each logit was exponentiated and divided by the sum."}, memory:{oneLine:"Scores become probabilities.",image:"A pie chart.",equation:"P(tokenᵢ) = exp(logitᵢ) / Σ exp(logitⱼ)",remember:"Softmax produces probabilities that sum to 1."}, lab:{type:"softmax"} },
+  { number:12, title:"Loss", viz:"loss", purpose:"Measure how wrong the prediction was.", why:"The model needs a single number that says 'how bad was that?'", input:"The predicted probability of the correct token.", process:"Negative logarithm of P(target).", output:"A loss value. Lower is better.", math:"Loss = -log(P(target))", eli5:"If you were 100% sure and correct, loss is 0.", mental:"A penalty score.", remember:["Loss = -log(P(target)).","Lower loss means better prediction."], quiz:{q:"What does a loss of 0 mean?",a:"The model predicted the correct token with 100% probability."}, reverse:{input:"P(target) = 0.073655",output:"Loss = 2.608369",q:"What happened?",a:"The negative logarithm of 0.073655 was taken."}, memory:{oneLine:"How wrong was the prediction?",image:"A penalty score.",equation:"Loss = -log(P(target))",remember:"Loss measures wrongness; lower is better."}, lab:{type:"loss"} },
+  { number:13, title:"Logit Gradients", viz:"gradients", purpose:"Compute how much each logit contributed to the loss.", why:"We need to know which logits to push up or down.", input:"Probabilities and the target token.", process:"Target: p - 1. Others: p.", output:"9 gradients.", math:"gradientᵢ = P(tokenᵢ) - targetᵢ", eli5:"If the model was too confident about the wrong word, that word gets a big positive gradient.", mental:"A list of adjustments.", remember:["Gradient = probability - target.","Target word gets negative gradient."], quiz:{q:"What is the gradient for the target token?",a:"P(target) - 1."}, reverse:{input:"P(quick) = 0.073655",output:"gradient(quick) = -0.926345",q:"What happened?",a:"The target's probability minus 1 gave its gradient."}, memory:{oneLine:"How much each logit should change.",image:"Adjustment notes.",equation:"gradientᵢ = P(tokenᵢ) - targetᵢ",remember:"Gradients point toward the correct answer."} },
+  { number:14, title:"Output Weight Gradients", viz:"weightGradients", purpose:"Compute how much each output weight contributed to the error.", why:"We need to know which weights to change.", input:"Logit gradients and hidden values.", process:"Multiply gradient by hidden value.", output:"Weight gradients.", math:"weight gradient = logit gradient × hidden value", eli5:"If a hidden neuron was active and the output was wrong, that connection gets a big adjustment.", mental:"Blame assignment.", remember:["Weight gradient = logit gradient × hidden value.","Active neurons get bigger gradients."], quiz:{q:"How do we compute an output weight gradient?",a:"Multiply logit gradient by hidden value."}, reverse:{input:"logitGrad = -0.926345, hidden = 0.384029",output:"weightGrad = -0.355700",q:"What happened?",a:"Logit gradient was multiplied by hidden value."}, memory:{oneLine:"Blame the active neurons.",image:"Blame assignment.",equation:"Δw = gradient × hidden",remember:"Weight gradients combine error and activity."} },
+  { number:15, title:"Output Bias Gradients", viz:"biasGradients", purpose:"Compute how much each output bias contributed to the error.", why:"Biases also need to be adjusted.", input:"Logit gradients.", process:"Bias gradient = logit gradient.", output:"Bias gradients.", math:"bias gradient = logit gradient", eli5:"The bias gets the same blame as the logit it produced.", mental:"A constant offset adjusted by error.", remember:["Bias gradient = logit gradient.","Biases shift the output up or down."], quiz:{q:"What is the bias gradient equal to?",a:"The logit gradient."}, reverse:{input:"logitGrad = -0.926345",output:"biasGrad = -0.926345",q:"What happened?",a:"The bias gradient is simply the logit gradient."}, memory:{oneLine:"Bias gets the same blame.",image:"A constant offset.",equation:"Δb = gradient",remember:"Bias gradient = logit gradient."} },
+  { number:16, title:"Learning Rate", viz:"learningRate", purpose:"Control how big each parameter update step is.", why:"Without a learning rate, updates could be too large or too small.", input:"A chosen number (e.g., 0.1).", process:"Multiply gradient by learning rate.", output:"The actual step size.", math:"step = learning rate × gradient", eli5:"The learning rate is like the size of the steps you take walking down a hill.", mental:"A volume knob for learning speed.", remember:["Learning rate controls update size.","Our learning rate is 0.1."], quiz:{q:"What is our learning rate?",a:"0.1"}, reverse:{input:"gradient = -0.926345, lr = 0.1",output:"step = -0.0926345",q:"What happened?",a:"The gradient was multiplied by the learning rate."}, memory:{oneLine:"How big is each learning step?",image:"Step size walking down a hill.",equation:"step = learning rate × gradient",remember:"Learning rate scales the gradient."}, lab:{type:"lr"} },
+  { number:17, title:"First Parameter Update", viz:"parameterUpdate", purpose:"Adjust the output weights and biases using the gradients.", why:"This is how the model actually learns.", input:"Old parameters, learning rate, gradients.", process:"new = old - learning rate × gradient.", output:"Updated weights and biases.", math:"new parameter = old parameter - learning rate × gradient", eli5:"Take a small step in the direction that makes the error smaller.", mental:"Adjusting knobs on a machine.", remember:["new = old - lr × gradient.","This is the core learning step."], quiz:{q:"What is the parameter update formula?",a:"new = old - learning rate × gradient"}, reverse:{input:"old = 0.5, lr = 0.1, grad = -0.926345",output:"new = 0.5926",q:"What happened?",a:"Old parameter was updated by subtracting lr × gradient."}, memory:{oneLine:"Nudge parameters to reduce error.",image:"Turning knobs.",equation:"new = old - lr × gradient",remember:"Parameters move opposite to the gradient."}, lab:{type:"update"} },
+  { number:18, title:"Verify Learning Update", viz:"parameterUpdate", purpose:"Confirm that the parameter update actually changed the output.", why:"We need to verify that learning is happening.", input:"Old parameters, new parameters.", process:"Re-run forward pass and compare.", output:"New prediction with different probabilities.", math:"compare P(target) before and after", eli5:"Check if the model's answer changed after the update.", mental:"Re-taking a test after studying.", remember:["Always verify that updates change behavior.","A changed prediction means learning occurred."], quiz:{q:"Why do we verify the update?",a:"To confirm parameters actually changed the prediction."}, reverse:{input:"old P(quick)=0.0737",output:"new P(quick)=0.0921",q:"What happened?",a:"After updating, the forward pass produced a higher probability."}, memory:{oneLine:"Check that learning changed the answer.",image:"Re-taking a test.",equation:"compare before vs after",remember:"Verify that updates improve prediction."} },
+  { number:19, title:"Training Loop", viz:"trainingLoop", purpose:"Repeat forward pass, loss, backward pass, and update many times.", why:"One update is not enough.", input:"Training data, current parameters.", process:"For each iteration: forward → loss → backward → update.", output:"Decreasing loss.", math:"for epoch in range(n): forward(); backward(); update()", eli5:"Practice makes perfect.", mental:"A loop: predict → check → adjust → repeat.", remember:["Training is repetition.","Each loop: forward, loss, backward, update."], quiz:{q:"What are the four stages of the training loop?",a:"Forward, loss, backward, update."}, reverse:{input:"iteration 1, iteration 2, …",output:"loss decreases",q:"What happened?",a:"The model repeatedly performed forward and backward passes."}, memory:{oneLine:"Predict, check, adjust, repeat.",image:"A loop.",equation:"for each step: forward; backward; update",remember:"Training is a loop."}, lab:{type:"trainingLoop"} },
+  { number:20, title:"Verify Hidden Forward Pass", viz:"hiddenLayer", purpose:"Confirm the hidden layer produces the expected values.", why:"We need to trust the hidden layer before backpropagating.", input:"Verified embedding for 'The'.", process:"Compute hidden values with verified weights.", output:"Hidden outputs: [0.384029, 0, 0, 0.796667]", math:"hⱼ = ReLU(Σ(xᵢwᵢⱼ) + bⱼ)", eli5:"Double-check the committee's scores.", mental:"Checking your work before moving on.", remember:["Verified hidden outputs: [0.384029, 0, 0, 0.796667].","ReLU derivatives: [1, 0, 0, 1]."], quiz:{q:"What are the verified hidden outputs?",a:"[0.384029, 0, 0, 0.796667]"}, reverse:{input:"embedding = [0.278854, …]",output:"hidden = [0.384029, 0, 0, 0.796667]",q:"What happened?",a:"The hidden-layer forward pass was verified."}, memory:{oneLine:"Trust but verify.",image:"Checking your work.",equation:"h = ReLU(Wx + b)",remember:"Hidden outputs verified as [0.384029, 0, 0, 0.796667]."}, lab:{type:"hiddenForward"} },
+  { number:21, title:"Hidden-Layer Backpropagation", viz:"hiddenLayer", purpose:"Send the error signal backward through the hidden layer.", why:"Hidden neurons also contributed to the error.", input:"Output gradients, output weights, ReLU derivatives.", process:"Sum (outputGrad × weight), multiply by ReLU derivative.", output:"Hidden gradients.", math:"hiddenGradⱼ = ReLU'(zⱼ) × Σ(outputGradₖ × wⱼₖ)", eli5:"The committee members also need to know how much they contributed.", mental:"Error flows backward like a wave.", remember:["Backprop sends error backward.","ReLU derivative gates the gradient."], quiz:{q:"What gates the hidden gradient?",a:"The ReLU derivative."}, reverse:{input:"outputGrad, weights, ReLU'",output:"hiddenGrad",q:"What happened?",a:"Output gradients were multiplied by weights and gated by ReLU derivatives."}, memory:{oneLine:"Error flows backward.",image:"A wave returning to its source.",equation:"hiddenGrad = ReLU' × (Wᵀ × outputGrad)",remember:"ReLU derivative gates hidden gradients."} },
+  { number:22, title:"Hidden-Weight Gradients", viz:"weightGradients", purpose:"Compute how much each hidden weight contributed to the error.", why:"Hidden weights need to be adjusted.", input:"Hidden gradients, input embedding values.", process:"Multiply hidden gradient by input value.", output:"Weight gradients.", math:"hidden weight gradient = hidden gradient × input value", eli5:"If an input was very active and the hidden neuron was wrong, that connection gets a big adjustment.", mental:"Blame assignment for the hidden layer.", remember:["Hidden weight gradient = hidden gradient × input.","This tells us how to adjust hidden weights."], quiz:{q:"How do we compute a hidden weight gradient?",a:"Multiply hidden gradient by input value."}, reverse:{input:"hiddenGrad = -0.2, input = 0.278854",output:"weightGrad = -0.055771",q:"What happened?",a:"The hidden gradient was multiplied by the input value."}, memory:{oneLine:"Blame the inputs.",image:"Assigning blame to connections.",equation:"Δw_hidden = hiddenGrad × input",remember:"Hidden weight gradients combine error and input."} },
+  { number:23, title:"Hidden-Bias Gradients", viz:"biasGradients", purpose:"Compute how much each hidden bias contributed to the error.", why:"Hidden biases also need adjustment.", input:"Hidden gradients.", process:"Bias gradient = hidden gradient.", output:"Bias gradients.", math:"hidden bias gradient = hidden gradient", eli5:"The bias gets the same blame as the neuron it belongs to.", mental:"A constant offset adjusted by error.", remember:["Hidden bias gradient = hidden gradient.","Biases shift the neuron's output."], quiz:{q:"What is the hidden bias gradient equal to?",a:"The hidden gradient."}, reverse:{input:"hiddenGrad = -0.2",output:"biasGrad = -0.2",q:"What happened?",a:"The hidden bias gradient is simply the hidden gradient."}, memory:{oneLine:"Bias gets the error signal.",image:"A constant offset.",equation:"Δb_hidden = hiddenGrad",remember:"Hidden bias gradient = hidden gradient."} },
+  { number:24, title:"Hidden-Layer Parameter Update", viz:"parameterUpdate", purpose:"Adjust hidden weights and biases using their gradients.", why:"This completes the learning step for the hidden layer.", input:"Old hidden parameters, learning rate, gradients.", process:"new = old - lr × gradient.", output:"Updated hidden weights and biases.", math:"new hidden parameter = old - learning rate × gradient", eli5:"Turn the hidden layer's knobs a little bit in the direction that reduces error.", mental:"Adjusting the internal machinery.", remember:["Hidden parameters also update.","Same formula: new = old - lr × gradient."], quiz:{q:"How do hidden parameters update?",a:"new = old - learning rate × gradient."}, reverse:{input:"old = 0.5, lr = 0.1, grad = -0.2",output:"new = 0.52",q:"What happened?",a:"The hidden parameter was updated by subtracting lr × gradient."}, memory:{oneLine:"Adjust hidden knobs.",image:"Turning the hidden layer's knobs.",equation:"new = old - lr × gradient",remember:"Hidden parameters update the same way."} },
+  { number:25, title:"Update Everything Together", viz:"trainingLoop", purpose:"Perform a complete training step: forward, backward, and update all parameters.", why:"In practice, all parameters are updated in one coordinated step.", input:"Training example, current parameters.", process:"Forward → loss → backward → update all.", output:"A fully updated model.", math:"forward(); loss(); backward(); updateAll()", eli5:"One complete practice round.", mental:"A full cycle of the learning loop.", remember:["One training step updates all parameters.","Forward → loss → backward → update."], quiz:{q:"What happens in one complete training step?",a:"Forward, loss, backward, update."}, reverse:{input:"one training example",output:"updated model parameters",q:"What happened?",a:"A complete forward and backward pass was performed."}, memory:{oneLine:"One full cycle of learning.",image:"A complete practice round.",equation:"forward → loss → backward → updateAll",remember:"One step updates every parameter."}, lab:{type:"trainingLoop"} },
+  { number:26, title:"Train Across All 8 Examples", viz:"trainingLoop", purpose:"Run the training loop over all training examples.", why:"The model needs to see all examples.", input:"All 8 training examples.", process:"For each: forward, loss, backward, update. Repeat.", output:"A trained model.", math:"for example in examples: trainStep(example)", eli5:"Practice all 8 flashcards, over and over.", mental:"Going through the entire deck multiple times.", remember:["Train on all 8 examples.","Multiple iterations improve learning."], quiz:{q:"How many training examples per iteration?",a:"8."}, reverse:{input:"8 examples, many iterations",output:"model learns patterns",q:"What happened?",a:"The model repeatedly trained on all 8 examples."}, memory:{oneLine:"Practice all examples repeatedly.",image:"Going through a deck.",equation:"for each example: trainStep()",remember:"Training over all examples improves the model."}, lab:{type:"trainAll"} },
+  { number:27, title:"Check Whether the Model Learned", viz:"learnedCheck", purpose:"Compare predictions before and after training.", why:"We need evidence that learning actually happened.", input:"Untrained and trained predictions.", process:"Compare loss and target probabilities.", output:"Loss decreased, P(target) increased.", math:"compare(Loss_before, Loss_after)", eli5:"Check the score before and after studying.", mental:"A before-and-after photo.", remember:["Loss decreased by 2.058383.","P(quick) increased by 0.503304."], quiz:{q:"What were the loss and P(quick) at step 1 vs step 20?",a:"Step 1: loss=2.608, P=0.074. Step 20: loss=0.550, P=0.577."}, reverse:{input:"before: loss=2.608",output:"after: loss=0.550",q:"What happened?",a:"The model's loss decreased significantly."}, memory:{oneLine:"Check if the model got better.",image:"A before-and-after comparison.",equation:"compare(Loss_before, Loss_after)",remember:"Loss went from 2.608 to 0.550."}, lab:{type:"checkLearned"} },
+  { number:28, title:"Build Prediction Function", viz:"neuron", purpose:"Create a function that predicts the next token from an input token.", why:"We need a reusable way to make predictions.", input:"An input token.", process:"Token → ID → embedding → hidden → logits → softmax → predicted token.", output:"The predicted next token and its probability.", math:"predict(token) = reverseVocab[argmax(softmax(forward(embed(token))))]", eli5:"A machine that takes a word and tells you what word it thinks comes next.", mental:"A complete pipeline: word in, prediction out.", remember:["Prediction = token → embedding → hidden → logits → softmax → token.","This is inference (no learning)."], quiz:{q:"What is the prediction pipeline?",a:"Token → ID → embedding → hidden → output → softmax → token."}, reverse:{input:"token = \"The\"",output:"predicted next = \"quick\"",q:"What happened?",a:"The input token was embedded and passed through the network."}, memory:{oneLine:"Word in, prediction out.",image:"A pipeline from word to word.",equation:"predict(token) = argmax(softmax(forward(embed(token))))",remember:"Prediction uses the trained network."}, lab:{type:"predict"} },
+  { number:29, title:"Generate Text", viz:"trainingLoop", purpose:"Use the model to generate a sequence of words.", why:"This shows what the model has learned in a creative way.", input:"A starting token.", process:"Predict next token, append it, repeat.", output:"A generated sequence.", math:"while len < max: next = predict(current); append(next)", eli5:"The model writes a sentence one word at a time.", mental:"A word-by-word story generator.", remember:["Generation = repeated prediction.","Temperature can control randomness."], quiz:{q:"How does text generation work?",a:"Predict the next token, add it, repeat."}, reverse:{input:"start = \"The\"",output:"\"The quick brown fox…\"",q:"What happened?",a:"The model repeatedly predicted the next token and appended it."}, memory:{oneLine:"Generate one word at a time.",image:"A word-by-word story generator.",equation:"next = predict(current)",remember:"Generation repeats prediction."}, lab:{type:"generate"} },
+  { number:30, title:"Final End-to-End Test", viz:"finalPipeline", purpose:"See the entire pipeline from text to prediction in one view.", why:"This confirms you understand the complete system.", input:"Raw text.", process:"Text → tokens → embeddings → hidden → logits → softmax → prediction.", output:"A complete prediction.", math:"full pipeline: text → token → embedding → hidden → logits → softmax → prediction", eli5:"Watch the whole machine work from start to finish.", mental:"A transparent factory.", remember:["You now understand the complete training loop.","Text → tokens → numbers → hidden → logits → probabilities → prediction."], quiz:{q:"What are the major stages of the full pipeline?",a:"Text → tokens → embeddings → hidden → logits → softmax → prediction."}, reverse:{input:"\"The quick brown fox…\"",output:"predicted next token",q:"What happened?",a:"The entire pipeline processed the text from tokenization to prediction."}, memory:{oneLine:"The whole machine.",image:"A transparent factory.",equation:"text → tokens → embeddings → hidden → logits → softmax → prediction",remember:"You understand the complete tiny LLM pipeline."}, lab:{type:"final"} }
 ];
 
 // =====================================================================
-//  LAB RENDERERS — every control gets a live ELI5 tooltip
+//  LAB RENDERERS
 // =====================================================================
-
 const labTitles = {
   embedding: 'Drag a dimension — watch the vector morph',
   neuron: 'Drag the weight — watch z change',
@@ -1616,38 +1226,26 @@ const labTitles = {
 
 const labContents = {
   embedding: (n) => `
-    <div class="lab-question">Each word is a vector of 4 numbers. Drag any dimension and watch the shape literally morph in real-time.</div>
+    <div class="lab-question">Each word is a vector of 4 numbers. Drag any dimension and watch the shape literally morph.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:240px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="embDim0">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Dimension 0</span>
-          <span class="lab-control-value" id="v0_${n}">0.2789</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Dimension 0</span><span class="lab-control-value" id="v0_${n}">0.2789</span></div>
         <input type="range" id="s0_${n}" min="-1.5" max="1.5" step="0.001" value="0.278854">
         <div class="range-labels"><span>-1.50</span><span>+1.50</span></div>
       </div>
-      <div class="lab-control live" data-eli5="embDim1">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Dimension 1</span>
-          <span class="lab-control-value" id="v1_${n}">-0.9500</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Dimension 1</span><span class="lab-control-value" id="v1_${n}">-0.9500</span></div>
         <input type="range" id="s1_${n}" min="-1.5" max="1.5" step="0.001" value="-0.949978">
         <div class="range-labels"><span>-1.50</span><span>+1.50</span></div>
       </div>
-      <div class="lab-control live" data-eli5="embDim2">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Dimension 2</span>
-          <span class="lab-control-value" id="v2_${n}">-0.4499</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Dimension 2</span><span class="lab-control-value" id="v2_${n}">-0.4499</span></div>
         <input type="range" id="s2_${n}" min="-1.5" max="1.5" step="0.001" value="-0.449941">
         <div class="range-labels"><span>-1.50</span><span>+1.50</span></div>
       </div>
-      <div class="lab-control live" data-eli5="embDim3">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Dimension 3</span>
-          <span class="lab-control-value" id="v3_${n}">-0.5536</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Dimension 3</span><span class="lab-control-value" id="v3_${n}">-0.5536</span></div>
         <input type="range" id="s3_${n}" min="-1.5" max="1.5" step="0.001" value="-0.553579">
         <div class="range-labels"><span>-1.50</span><span>+1.50</span></div>
       </div>
@@ -1658,19 +1256,13 @@ const labContents = {
     <div class="lab-question">Drag the weight. Watch the neuron's z value change in real-time.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:220px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="neuronWeight">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Weight</span>
-          <span class="lab-control-value" id="lw_${n}">-0.3608</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Weight</span><span class="lab-control-value" id="lw_${n}">-0.3608</span></div>
         <input type="range" id="ls_${n}" min="-1.5" max="1.5" step="0.001" value="-0.360750">
         <div class="range-labels"><span>-1.50</span><span>+1.50</span></div>
       </div>
-      <div class="lab-control live" data-eli5="neuronBias">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Bias</span>
-          <span class="lab-control-value" id="lb_${n}">0.2183</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Bias</span><span class="lab-control-value" id="lb_${n}">0.2183</span></div>
         <input type="range" id="lbs_${n}" min="-1" max="1" step="0.001" value="0.218262">
         <div class="range-labels"><span>-1.00</span><span>+1.00</span></div>
       </div>
@@ -1687,11 +1279,8 @@ const labContents = {
     <div class="lab-question">Drag the input across zero. Watch the point slide along the ReLU curve.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:260px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="reluInput">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Input z</span>
-          <span class="lab-control-value" id="rz_${n}">0.3840</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Input z</span><span class="lab-control-value" id="rz_${n}">0.3840</span></div>
         <input type="range" id="rs_${n}" min="-1.5" max="1.5" step="0.001" value="0.384029">
         <div class="range-labels"><span>-1.50</span><span>+1.50</span></div>
       </div>
@@ -1706,11 +1295,8 @@ const labContents = {
     <div class="lab-question">Drag neuron 0's pre-activation. Watch its hidden output turn on and off.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:240px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="hiddenZ">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Neuron 0 pre-activation z</span>
-          <span class="lab-control-value" id="hz_${n}">0.3840</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Neuron 0 pre-activation z</span><span class="lab-control-value" id="hz_${n}">0.3840</span></div>
         <input type="range" id="hs_${n}" min="-1" max="1.5" step="0.001" value="0.384029">
         <div class="range-labels"><span>-1.00</span><span>+1.50</span></div>
       </div>
@@ -1727,11 +1313,8 @@ const labContents = {
     <div class="lab-question">Drag hidden neuron 0's value. Watch the output logits respond.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:240px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="outputH0">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Hidden 0 value</span>
-          <span class="lab-control-value" id="oh_${n}">0.3840</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Hidden 0 value</span><span class="lab-control-value" id="oh_${n}">0.3840</span></div>
         <input type="range" id="os_${n}" min="0" max="1.5" step="0.001" value="0.384029">
         <div class="range-labels"><span>0.00</span><span>+1.50</span></div>
       </div>
@@ -1748,11 +1331,8 @@ const labContents = {
     <div class="lab-question">Drag logit 0 up and down. Watch the pie chart rebalance in real-time.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:260px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="softmaxLogit0">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Logit 0</span>
-          <span class="lab-control-value" id="sl_${n}">1.200</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Logit 0</span><span class="lab-control-value" id="sl_${n}">1.200</span></div>
         <input type="range" id="ss_${n}" min="-3" max="3" step="0.05" value="1.2">
         <div class="range-labels"><span>-3.0</span><span>+3.0</span></div>
       </div>
@@ -1772,11 +1352,8 @@ const labContents = {
     <div class="lab-question">Drag P(target). Watch the loss curve marker slide.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:260px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="lossP">
-        <div class="lab-control-header">
-          <span class="lab-control-label">P(target)</span>
-          <span class="lab-control-value" id="lp_${n}">0.0737</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">P(target)</span><span class="lab-control-value" id="lp_${n}">0.0737</span></div>
         <input type="range" id="ls_${n}" min="0.01" max="1.0" step="0.001" value="0.073655">
         <div class="range-labels"><span>0.01</span><span>1.00</span></div>
       </div>
@@ -1791,11 +1368,8 @@ const labContents = {
     <div class="lab-question">Drag the learning rate. Watch the step size grow and shrink.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:240px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="lrLR">
-        <div class="lab-control-header">
-          <span class="lab-control-label">Learning rate</span>
-          <span class="lab-control-value" id="llr_${n}">0.100</span>
-        </div>
+      <div class="lab-control live">
+        <div class="lab-control-header"><span class="lab-control-label">Learning rate</span><span class="lab-control-value" id="llr_${n}">0.100</span></div>
         <input type="range" id="lls_${n}" min="0.001" max="1.0" step="0.001" value="0.1">
         <div class="range-labels"><span>0.001</span><span>1.000</span></div>
       </div>
@@ -1812,15 +1386,15 @@ const labContents = {
     <div class="lab-question">Drag old parameter, gradient, or learning rate. Watch the marker move.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:240px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="updateOld">
+      <div class="lab-control live">
         <div class="lab-control-header"><span class="lab-control-label">Old parameter</span><span class="lab-control-value" id="uo_${n}">0.5000</span></div>
         <input type="range" id="uos_${n}" min="-1" max="1" step="0.001" value="0.5">
       </div>
-      <div class="lab-control live" data-eli5="updateGrad">
+      <div class="lab-control live">
         <div class="lab-control-header"><span class="lab-control-label">Gradient</span><span class="lab-control-value" id="ug_${n}">-0.9263</span></div>
         <input type="range" id="ugs_${n}" min="-1" max="1" step="0.001" value="-0.926345">
       </div>
-      <div class="lab-control live" data-eli5="updateLR">
+      <div class="lab-control live">
         <div class="lab-control-header"><span class="lab-control-label">Learning rate</span><span class="lab-control-value" id="ul_${n}">0.100</span></div>
         <input type="range" id="uls_${n}" min="0.001" max="0.5" step="0.001" value="0.1">
       </div>
@@ -1837,9 +1411,9 @@ const labContents = {
     <div class="lab-question">Run iterations. Watch the loss curve grow and the marker slide.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:260px;margin-bottom:16px;"></canvas>
     <div class="lab-controls" style="flex-direction:row;flex-wrap:wrap;gap:8px;">
-      <button class="btn" data-eli5="trainLoopRun1" data-n="1" onclick="runLoop(${n},1)">+1 iteration</button>
-      <button class="btn" data-eli5="trainLoopRun5" data-n="5" onclick="runLoop(${n},5)">+5</button>
-      <button class="btn" data-eli5="trainLoopRun20" data-n="20" onclick="runLoop(${n},20)">+20</button>
+      <button class="btn" onclick="runLoop(${n},1)">+1 iteration</button>
+      <button class="btn" onclick="runLoop(${n},5)">+5</button>
+      <button class="btn" onclick="runLoop(${n},20)">+20</button>
     </div>
     <div class="lab-calc">
       <div class="calc-row"><span class="calc-key">Iteration</span><span class="calc-val" id="ti_${n}">1</span></div>
@@ -1851,7 +1425,7 @@ const labContents = {
     <div class="lab-question">Verified hidden-layer values. Drag neuron 0's z to see what would happen if it changed.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:240px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="hiddenFwdZ">
+      <div class="lab-control live">
         <div class="lab-control-header"><span class="lab-control-label">Neuron 0 pre-activation z</span><span class="lab-control-value" id="vz_${n}">0.3840</span></div>
         <input type="range" id="vzs_${n}" min="-1" max="1.5" step="0.001" value="0.384029">
         <div class="range-labels"><span>-1.00</span><span>+1.50</span></div>
@@ -1869,7 +1443,7 @@ const labContents = {
     <div class="lab-question">Walk through one complete training step.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:200px;margin-bottom:16px;"></canvas>
     <div class="lab-controls" style="flex-direction:row;flex-wrap:wrap;gap:8px;">
-      <button class="btn" data-eli5="fullStepBtn" onclick="advanceFull(${n})">Next stage →</button>
+      <button class="btn" onclick="advanceFull(${n})">Next stage →</button>
     </div>
     <div class="lab-calc">
       <div class="calc-row"><span class="calc-key">Stage</span><span class="calc-val" id="fstage_${n}">Forward pass</span></div>
@@ -1881,9 +1455,9 @@ const labContents = {
     <div class="lab-question">Train over all 8 examples. Watch the loss chart animate downward.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:260px;margin-bottom:16px;"></canvas>
     <div class="lab-controls" style="flex-direction:row;flex-wrap:wrap;gap:8px;">
-      <button class="btn" data-eli5="trainAllRun1" data-n="1" onclick="runTrainAll(${n},1)">+1 iter</button>
-      <button class="btn" data-eli5="trainAllRun5" data-n="5" onclick="runTrainAll(${n},5)">+5</button>
-      <button class="btn" data-eli5="trainAllRun20" data-n="20" onclick="runTrainAll(${n},20)">+20</button>
+      <button class="btn" onclick="runTrainAll(${n},1)">+1 iter</button>
+      <button class="btn" onclick="runTrainAll(${n},5)">+5</button>
+      <button class="btn" onclick="runTrainAll(${n},20)">+20</button>
     </div>
     <div class="lab-calc">
       <div class="calc-row"><span class="calc-key">Iteration</span><span class="calc-val" id="tai_${n}">0</span></div>
@@ -1895,7 +1469,7 @@ const labContents = {
     <div class="lab-question">Play the before-and-after animation. Watch the bars change.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:260px;margin-bottom:16px;"></canvas>
     <div class="lab-controls" style="flex-direction:row;flex-wrap:wrap;gap:8px;">
-      <button class="btn" data-eli5="checkLearnedBtn" onclick="playLearnAnim(${n})">▶ Play animation</button>
+      <button class="btn" onclick="playLearnAnim(${n})">▶ Play animation</button>
     </div>
     <div class="lab-actions"><button class="btn" onclick="resetLab(${n})">Reset Experiment</button></div>
   `,
@@ -1903,7 +1477,7 @@ const labContents = {
     <div class="lab-question">Pick an input token. Watch the prediction change.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:220px;margin-bottom:16px;"></canvas>
     <div class="lab-controls">
-      <div class="lab-control live" data-eli5="predictSlider">
+      <div class="lab-control live">
         <div class="lab-control-header"><span class="lab-control-label">Input token ID</span><span class="lab-control-value" id="ptok_${n}">The (0)</span></div>
         <input type="range" id="ps_${n}" min="0" max="8" step="1" value="0">
         <div class="range-labels"><span>The</span><span>dog</span></div>
@@ -1919,7 +1493,7 @@ const labContents = {
     <div class="lab-question">Generate text one word at a time. Each click runs one forward pass.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:200px;margin-bottom:16px;"></canvas>
     <div class="lab-controls" style="flex-direction:row;flex-wrap:wrap;gap:8px;">
-      <button class="btn" data-eli5="genNextBtn" onclick="genNext(${n})">Predict next word →</button>
+      <button class="btn" onclick="genNext(${n})">Predict next word →</button>
     </div>
     <div class="lab-calc">
       <div class="calc-row"><span class="calc-key">Sequence</span><span class="calc-val" id="gseq_${n}">The</span></div>
@@ -1931,20 +1505,20 @@ const labContents = {
     <div class="lab-question">The complete pipeline. Click any stage to focus it.</div>
     <canvas class="viz-canvas" id="labCanvas_${n}" style="height:220px;margin-bottom:16px;"></canvas>
     <div class="lab-controls" style="flex-direction:row;flex-wrap:wrap;gap:6px;">
-      <button class="btn btn-sm" data-eli5="finalStageTEXT" onclick="focusStage(${n},0)">TEXT</button>
-      <button class="btn btn-sm" data-eli5="finalStageTOKEN" onclick="focusStage(${n},1)">TOKEN</button>
-      <button class="btn btn-sm" data-eli5="finalStageEMBED" onclick="focusStage(${n},2)">EMBED</button>
-      <button class="btn btn-sm" data-eli5="finalStageHIDDEN" onclick="focusStage(${n},3)">HIDDEN</button>
-      <button class="btn btn-sm" data-eli5="finalStageLOGITS" onclick="focusStage(${n},4)">LOGITS</button>
-      <button class="btn btn-sm" data-eli5="finalStageSOFTMAX" onclick="focusStage(${n},5)">SOFTMAX</button>
-      <button class="btn btn-sm" data-eli5="finalStagePREDICT" onclick="focusStage(${n},6)">PREDICT</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},0)">TEXT</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},1)">TOKEN</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},2)">EMBED</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},3)">HIDDEN</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},4)">LOGITS</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},5)">SOFTMAX</button>
+      <button class="btn btn-sm" onclick="focusStage(${n},6)">PREDICT</button>
     </div>
     <div class="lab-actions"><button class="btn" onclick="resetLab(${n})">Reset Experiment</button></div>
   `
 };
 
 // =====================================================================
-//  LAB INITIALIZATION
+//  LAB INIT
 // =====================================================================
 let labState = {};
 
@@ -1977,21 +1551,11 @@ function initLab(step) {
     if (VIZ[key]) VIZ[key](ctx, w, h, params);
   };
 
-  // Wire up controls + bind ELI5 tooltips
   if (lab === 'embedding') {
     const ids = ['s0','s1','s2','s3'].map(p => document.getElementById(`${p}_${n}`));
     const labels = ['v0','v1','v2','v3'].map(p => document.getElementById(`${p}_${n}`));
-    const get = () => ({
-      dim0: parseFloat(ids[0].value), dim1: parseFloat(ids[1].value),
-      dim2: parseFloat(ids[2].value), dim3: parseFloat(ids[3].value)
-    });
-    ids.forEach((sl, i) => {
-      sl.oninput = () => {
-        labels[i].textContent = parseFloat(sl.value).toFixed(4);
-        draw(get());
-      };
-    });
-    // ELI5 tooltips
+    const get = () => ({ dim0: parseFloat(ids[0].value), dim1: parseFloat(ids[1].value), dim2: parseFloat(ids[2].value), dim3: parseFloat(ids[3].value) });
+    ids.forEach((sl, i) => { sl.oninput = () => { labels[i].textContent = parseFloat(sl.value).toFixed(4); draw(get()); }; });
     bindLiveTip(ids[0], ELI5.embDim0, () => parseFloat(ids[0].value));
     bindLiveTip(ids[1], ELI5.embDim1, () => parseFloat(ids[1].value));
     bindLiveTip(ids[2], ELI5.embDim2, () => parseFloat(ids[2].value));
@@ -2001,19 +1565,15 @@ function initLab(step) {
   else if (lab === 'neuron') {
     const wS = document.getElementById(`ls_${n}`);
     const bS = document.getElementById(`lbs_${n}`);
-    const wL = document.getElementById(`lw_${n}`);
-    const bL = document.getElementById(`lb_${n}`);
-    const get = () => ({ weight: parseFloat(wS.value), bias: parseFloat(bS.value) });
     const update = () => {
-      const p = get();
-      wL.textContent = p.weight.toFixed(4);
-      bL.textContent = p.bias.toFixed(4);
-      const prod = 0.278854 * p.weight;
-      const z = prod + p.bias;
+      const w = parseFloat(wS.value), b = parseFloat(bS.value);
+      document.getElementById(`lw_${n}`).textContent = w.toFixed(4);
+      document.getElementById(`lb_${n}`).textContent = b.toFixed(4);
+      const prod = 0.278854 * w, z = prod + b;
       document.getElementById(`lp_${n}`).textContent = prod.toFixed(6);
-      document.getElementById(`lbb_${n}`).textContent = p.bias.toFixed(6);
+      document.getElementById(`lbb_${n}`).textContent = b.toFixed(6);
       document.getElementById(`lz_${n}`).textContent = z.toFixed(6);
-      draw(p);
+      draw({ weight: w, bias: b });
     };
     wS.oninput = update; bS.oninput = update;
     bindLiveTip(wS, ELI5.neuronWeight, () => parseFloat(wS.value));
@@ -2114,11 +1674,8 @@ function initLab(step) {
     const gS = document.getElementById(`ugs_${n}`);
     const lS = document.getElementById(`uls_${n}`);
     const update = () => {
-      const old = parseFloat(oS.value);
-      const grad = parseFloat(gS.value);
-      const lr = parseFloat(lS.value);
-      const step = lr * grad;
-      const nv = old - step;
+      const old = parseFloat(oS.value), grad = parseFloat(gS.value), lr = parseFloat(lS.value);
+      const step = lr * grad, nv = old - step;
       document.getElementById(`uo_${n}`).textContent = old.toFixed(4);
       document.getElementById(`ug_${n}`).textContent = grad.toFixed(4);
       document.getElementById(`ul_${n}`).textContent = lr.toFixed(3);
@@ -2143,11 +1700,11 @@ function initLab(step) {
       draw({ iter });
     };
     state.update();
-    // Bind buttons
-    document.querySelectorAll(`[data-eli5^="trainLoopRun"]`).forEach(btn => {
+    document.querySelectorAll(`.lab-body button`).forEach(btn => {
       if (btn.closest('.lab-body') !== canvas.closest('.lab-body')) return;
-      const count = parseInt(btn.dataset.n);
-      bindLiveTip(btn, () => ELI5.trainLoopRun(count), null);
+      if (btn.textContent.includes('+1 iteration')) bindLiveTip(btn, () => ELI5.trainLoopRun(1), null);
+      else if (btn.textContent.includes('+5')) bindLiveTip(btn, () => ELI5.trainLoopRun(5), null);
+      else if (btn.textContent.includes('+20')) bindLiveTip(btn, () => ELI5.trainLoopRun(20), null);
     });
   }
   else if (lab === 'hiddenForward') {
@@ -2165,22 +1722,16 @@ function initLab(step) {
   else if (lab === 'fullStep') {
     state.stage = 0;
     const stages = ['Forward pass', 'Loss', 'Backward pass', 'Parameter update', 'Done'];
-    const details = [
-      'Computing hidden and output values…',
-      'Loss = 2.608369',
-      'Computing gradients for all parameters…',
-      'Updating weights and biases…',
-      'Training step complete.'
-    ];
+    const details = ['Computing hidden and output values…','Loss = 2.608369','Computing gradients for all parameters…','Updating weights and biases…','Training step complete.'];
     state.update = () => {
       document.getElementById(`fstage_${n}`).textContent = stages[state.stage];
       document.getElementById(`fdetail_${n}`).textContent = details[state.stage];
       draw({ activeStage: state.stage });
     };
     state.update();
-    document.querySelectorAll(`[data-eli5="fullStepBtn"]`).forEach(btn => {
+    document.querySelectorAll(`.lab-body button`).forEach(btn => {
       if (btn.closest('.lab-body') !== canvas.closest('.lab-body')) return;
-      bindLiveTip(btn, ELI5.fullStepBtn, null);
+      if (btn.textContent.includes('Next stage')) bindLiveTip(btn, ELI5.fullStepBtn, null);
     });
   }
   else if (lab === 'trainAll') {
@@ -2193,19 +1744,20 @@ function initLab(step) {
       draw({ iter });
     };
     state.update();
-    document.querySelectorAll(`[data-eli5^="trainAllRun"]`).forEach(btn => {
+    document.querySelectorAll(`.lab-body button`).forEach(btn => {
       if (btn.closest('.lab-body') !== canvas.closest('.lab-body')) return;
-      const count = parseInt(btn.dataset.n);
-      bindLiveTip(btn, () => ELI5.trainAllRun(count), null);
+      if (btn.textContent.includes('+1 iter')) bindLiveTip(btn, () => ELI5.trainAllRun(1), null);
+      else if (btn.textContent.includes('+5')) bindLiveTip(btn, () => ELI5.trainAllRun(5), null);
+      else if (btn.textContent.includes('+20')) bindLiveTip(btn, () => ELI5.trainAllRun(20), null);
     });
   }
   else if (lab === 'checkLearned') {
     state.animT = 0;
     state.update = () => draw({ animT: state.animT });
     state.update();
-    document.querySelectorAll(`[data-eli5="checkLearnedBtn"]`).forEach(btn => {
+    document.querySelectorAll(`.lab-body button`).forEach(btn => {
       if (btn.closest('.lab-body') !== canvas.closest('.lab-body')) return;
-      bindLiveTip(btn, ELI5.checkLearnedBtn, null);
+      if (btn.textContent.includes('Play animation')) bindLiveTip(btn, ELI5.checkLearnedBtn, null);
     });
   }
   else if (lab === 'predict') {
@@ -2231,20 +1783,20 @@ function initLab(step) {
       draw({ activeStage: state.seq.length - 1 });
     };
     state.update();
-    document.querySelectorAll(`[data-eli5="genNextBtn"]`).forEach(btn => {
+    document.querySelectorAll(`.lab-body button`).forEach(btn => {
       if (btn.closest('.lab-body') !== canvas.closest('.lab-body')) return;
-      bindLiveTip(btn, ELI5.genNextBtn, null);
+      if (btn.textContent.includes('Predict next word')) bindLiveTip(btn, ELI5.genNextBtn, null);
     });
   }
   else if (lab === 'final') {
     state.stage = -1;
     state.update = () => draw({ activeStage: state.stage });
     state.update();
-    const stageNames = ['TEXT','TOKEN','EMBED','HIDDEN','LOGITS','SOFTMAX','PREDICT'];
-    document.querySelectorAll(`[data-eli5^="finalStage"]`).forEach(btn => {
+    const names = ['TEXT','TOKEN','EMBED','HIDDEN','LOGITS','SOFTMAX','PREDICT'];
+    document.querySelectorAll(`.lab-body button`).forEach(btn => {
       if (btn.closest('.lab-body') !== canvas.closest('.lab-body')) return;
-      const name = btn.dataset.eli5.replace('finalStage','');
-      bindLiveTip(btn, () => ELI5.finalStage(name), null);
+      const name = names.find(nm => btn.textContent === nm);
+      if (name) bindLiveTip(btn, () => ELI5.finalStage(name), null);
     });
   }
 }
@@ -2260,49 +1812,29 @@ function resetLab(n) {
   labState[n] = {};
   initLab(step);
 }
-function runLoop(n, count) {
-  const s = labState[n]; if (!s) return;
-  s.iter = (s.iter || 1) + count;
-  if (s.update) s.update();
-}
-function runTrainAll(n, count) {
-  const s = labState[n]; if (!s) return;
-  s.iter = (s.iter || 0) + count;
-  if (s.update) s.update();
-}
-function advanceFull(n) {
-  const s = labState[n]; if (!s) return;
-  s.stage = (s.stage + 1) % 5;
-  if (s.update) s.update();
-}
+function runLoop(n, count) { const s = labState[n]; if (!s) return; s.iter = (s.iter || 1) + count; if (s.update) s.update(); }
+function runTrainAll(n, count) { const s = labState[n]; if (!s) return; s.iter = (s.iter || 0) + count; if (s.update) s.update(); }
+function advanceFull(n) { const s = labState[n]; if (!s) return; s.stage = (s.stage + 1) % 5; if (s.update) s.update(); }
 function playLearnAnim(n) {
   const s = labState[n]; if (!s) return;
   s.animT = 0;
-  const step = () => {
-    s.animT += 0.03;
-    if (s.animT > 1) s.animT = 1;
-    if (s.update) s.update();
-    if (s.animT < 1) requestAnimationFrame(step);
-  };
+  const step = () => { s.animT += 0.03; if (s.animT > 1) s.animT = 1; if (s.update) s.update(); if (s.animT < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
 function genNext(n) {
   const s = labState[n]; if (!s) return;
   const nexts = ['quick','brown','fox','jumps','over','the','lazy','dog','The'];
   const next = nexts[(s.seq.length - 1) % nexts.length];
-  s.seq.push(next);
-  s.last = next;
+  s.seq.push(next); s.last = next;
   if (s.update) s.update();
 }
-function focusStage(n, stage) {
-  const s = labState[n]; if (!s) return;
-  s.stage = stage;
-  if (s.update) s.update();
-}
+function focusStage(n, stage) { const s = labState[n]; if (!s) return; s.stage = stage; if (s.update) s.update(); }
 
 // =====================================================================
-//  CARD RENDERING
+//  CARD
 // =====================================================================
+let mainVizCanvas = null;
+
 function renderCard() {
   const container = document.getElementById('cardContainer');
   if (!container) return;
@@ -2412,41 +1944,37 @@ function renderCard() {
     <div class="mem-value">${escapeHtml(step.memory.remember)}</div>
     <div class="mem-label">ACTIVE RECALL</div>
     <div class="mem-value">${escapeHtml(step.quiz.q)}</div>
-    ${step.lab ? `<div class="mem-label" style="margin-top:12px;">TRY IT</div><div class="mem-value">Hover over or drag any control in the Interactive Laboratory above. A tooltip will appear explaining what it does in plain language.</div>` : ''}
+    ${step.lab ? `<div class="mem-label" style="margin-top:12px;">TRY IT</div><div class="mem-value">Hover over or drag any control in the Interactive Laboratory above. A translucent tooltip appears explaining what it does in plain language.</div>` : ''}
   </div>`;
 
   html += `</div>`;
   container.innerHTML = html;
 
-  // Main viz
-  const mainCanvas = document.getElementById('mainViz');
-  if (mainCanvas && step.viz) {
-    const { ctx, w, h } = setupCanvas(mainCanvas);
-    if (VIZ[step.viz]) {
-      let defaultParams = {};
-      if (step.viz === 'neuron') defaultParams = { weight: -0.360750, bias: 0.218262 };
-      else if (step.viz === 'relu') defaultParams = { z: 0.384029 };
-      else if (step.viz === 'hiddenLayer') defaultParams = { z0: 0.384029 };
-      else if (step.viz === 'outputLayer') defaultParams = { h0: 0.384029 };
-      else if (step.viz === 'softmax') defaultParams = { logit0: 1.2 };
-      else if (step.viz === 'loss') defaultParams = { pTarget: 0.073655 };
-      else if (step.viz === 'learningRate') defaultParams = { lr: 0.1 };
-      else if (step.viz === 'parameterUpdate') defaultParams = { old: 0.5, grad: -0.926345, lr: 0.1 };
-      else if (step.viz === 'trainingLoop') defaultParams = { iter: 1 };
-      else if (step.viz === 'learnedCheck') defaultParams = { animT: 1 };
-      else if (step.viz === 'finalPipeline') defaultParams = { activeStage: -1 };
-      VIZ[step.viz](ctx, w, h, defaultParams);
-      // Animate learned check
-      if (step.viz === 'learnedCheck') {
-        let t = 0;
-        const anim = () => {
-          t += 0.02; if (t > 1) t = 1;
-          const { ctx, w, h } = setupCanvas(mainCanvas);
-          VIZ.learnedCheck(ctx, w, h, { animT: t });
-          if (t < 1) requestAnimationFrame(anim);
-        };
-        requestAnimationFrame(anim);
-      }
+  mainVizCanvas = document.getElementById('mainViz');
+  if (mainVizCanvas && step.viz) {
+    const { ctx, w, h } = setupCanvas(mainVizCanvas);
+    let defaults = {};
+    if (step.viz === 'neuron') defaults = { weight: -0.360750, bias: 0.218262 };
+    else if (step.viz === 'relu') defaults = { z: 0.384029 };
+    else if (step.viz === 'hiddenLayer') defaults = { z0: 0.384029 };
+    else if (step.viz === 'outputLayer') defaults = { h0: 0.384029 };
+    else if (step.viz === 'softmax') defaults = { logit0: 1.2 };
+    else if (step.viz === 'loss') defaults = { pTarget: 0.073655 };
+    else if (step.viz === 'learningRate') defaults = { lr: 0.1 };
+    else if (step.viz === 'parameterUpdate') defaults = { old: 0.5, grad: -0.926345, lr: 0.1 };
+    else if (step.viz === 'trainingLoop') defaults = { iter: 1 };
+    else if (step.viz === 'learnedCheck') defaults = { animT: 1 };
+    else if (step.viz === 'finalPipeline') defaults = { activeStage: -1 };
+    if (VIZ[step.viz]) VIZ[step.viz](ctx, w, h, defaults);
+    if (step.viz === 'learnedCheck') {
+      let t = 0;
+      const anim = () => {
+        t += 0.02; if (t > 1) t = 1;
+        const { ctx, w, h } = setupCanvas(mainVizCanvas);
+        VIZ.learnedCheck(ctx, w, h, { animT: t });
+        if (t < 1) requestAnimationFrame(anim);
+      };
+      requestAnimationFrame(anim);
     }
   }
 
@@ -2462,16 +1990,10 @@ function renderCard() {
 }
 
 // =====================================================================
-//  STATE & STORAGE
+//  STATE
 // =====================================================================
-const STORAGE_KEY = 'tiny_llm_eli5_v1';
-let state = {
-  currentStep: 0,
-  completed: new Set(),
-  quizStatus: {},
-  chapterFilter: 'all',
-  soundEnabled: true
-};
+const STORAGE_KEY = 'tiny_llm_translucent_v1';
+let state = { currentStep: 0, completed: new Set(), quizStatus: {}, chapterFilter: 'all', soundEnabled: true };
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -2485,14 +2007,7 @@ function loadState() {
   } catch (e) {}
 }
 function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      currentStep: state.currentStep,
-      completed: [...state.completed],
-      quizStatus: state.quizStatus,
-      soundEnabled: state.soundEnabled
-    }));
-  } catch (e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentStep: state.currentStep, completed: [...state.completed], quizStatus: state.quizStatus, soundEnabled: state.soundEnabled })); } catch (e) {}
 }
 function resetProgress() {
   if (confirm('Reset all progress? This cannot be undone.')) {
@@ -2500,13 +2015,9 @@ function resetProgress() {
     saveState(); renderAll();
   }
 }
-function escapeHtml(s) {
-  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
-}
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-// =====================================================================
-//  SPEECH
-// =====================================================================
+// SPEECH
 function speakStep(step) {
   if (!state.soundEnabled) return;
   window.speechSynthesis.cancel();
@@ -2516,9 +2027,7 @@ function speakStep(step) {
 }
 function speakCurrentStep() { speakStep(STEPS[state.currentStep]); }
 
-// =====================================================================
-//  PROGRESS RING
-// =====================================================================
+// PROGRESS
 function updateProgressRing() {
   const total = 30, done = state.completed.size;
   const circ = 2 * Math.PI * 18;
@@ -2529,9 +2038,7 @@ function updateProgressRing() {
   if (c) c.textContent = `${done} / ${total}`;
 }
 
-// =====================================================================
-//  CHAPTER NAV / MASTER MAP
-// =====================================================================
+// CHAPTER NAV
 function renderChapterNav() {
   const nav = document.getElementById('chapterNav');
   if (!nav) return;
@@ -2555,6 +2062,8 @@ function renderChapterNav() {
     nav.appendChild(btn);
   });
 }
+
+// MASTER MAP
 function renderMasterMap() {
   const map = document.getElementById('masterMap');
   if (!map) return;
@@ -2569,8 +2078,7 @@ function renderMasterMap() {
     el.className = 'map-stage';
     if (step.number === state.currentStep + 1) el.classList.add('current');
     if (state.completed.has(step.number)) el.classList.add('done');
-    el.innerHTML = `<div class="map-num">${String(step.number).padStart(2,'0')}</div>
-                    <div class="map-label">${escapeHtml(step.title)}</div>`;
+    el.innerHTML = `<div class="map-num">${String(step.number).padStart(2,'0')}</div><div class="map-label">${escapeHtml(step.title)}</div>`;
     el.onclick = () => goToStep(step.number - 1);
     map.appendChild(el);
     if (idx < visible.length - 1) {
@@ -2581,9 +2089,7 @@ function renderMasterMap() {
   });
 }
 
-// =====================================================================
-//  NAV / QUIZ / SEARCH
-// =====================================================================
+// NAV
 function goToStep(index) {
   if (index < 0 || index >= STEPS.length) return;
   state.currentStep = index;
@@ -2596,10 +2102,7 @@ function goToStep(index) {
 }
 function toggleQuiz(n) { const p = document.getElementById(`quizPanel_${n}`); if (p) p.classList.toggle('hidden'); }
 function revealQuizAnswer(n) { const a = document.getElementById(`quizAnswer_${n}`); if (a) a.classList.toggle('hidden'); }
-function markQuiz(n, s) {
-  state.quizStatus[n] = s; saveState();
-  const p = document.getElementById(`quizPanel_${n}`); if (p) p.classList.add('hidden');
-}
+function markQuiz(n, s) { state.quizStatus[n] = s; saveState(); const p = document.getElementById(`quizPanel_${n}`); if (p) p.classList.add('hidden'); }
 function toggleReverse(n) { const p = document.getElementById(`reversePanel_${n}`); if (p) p.classList.toggle('hidden'); }
 function revealReverse(n) { const a = document.getElementById(`reverseAnswer_${n}`); if (a) a.classList.toggle('hidden'); }
 function toggleMemory(n) { const p = document.getElementById(`memoryPanel_${n}`); if (p) p.classList.toggle('hidden'); }
@@ -2609,10 +2112,8 @@ function handleSearch(q) {
   if (!q || q.length < 2) { r.classList.remove('open'); return; }
   const query = q.toLowerCase();
   const matches = STEPS.filter(s =>
-    s.title.toLowerCase().includes(query) ||
-    s.purpose.toLowerCase().includes(query) ||
-    s.eli5.toLowerCase().includes(query) ||
-    s.math.toLowerCase().includes(query)
+    s.title.toLowerCase().includes(query) || s.purpose.toLowerCase().includes(query) ||
+    s.eli5.toLowerCase().includes(query) || s.math.toLowerCase().includes(query)
   );
   if (matches.length === 0) {
     r.innerHTML = '<div class="search-result-item"><span class="sr-desc">No results</span></div>';
@@ -2626,9 +2127,7 @@ function handleSearch(q) {
   r.classList.add('open');
 }
 
-// =====================================================================
-//  KEYBOARD
-// =====================================================================
+// KEYBOARD
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -2643,9 +2142,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// =====================================================================
-//  BOOT
-// =====================================================================
+// BOOT
 function renderAll() {
   renderChapterNav();
   renderMasterMap();
@@ -2654,11 +2151,9 @@ function renderAll() {
   const st = document.getElementById('soundToggle');
   if (st) { st.classList.toggle('active', state.soundEnabled); st.textContent = state.soundEnabled ? '🔊' : '🔇'; }
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   renderAll();
-
   document.getElementById('startBtn').onclick = () => {
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
@@ -2673,23 +2168,30 @@ document.addEventListener('DOMContentLoaded', () => {
     saveState();
     if (!state.soundEnabled) window.speechSynthesis.cancel();
   };
-  document.getElementById('shortcutsToggle').onclick = () => {
-    document.getElementById('shortcutsPanel').classList.toggle('open');
-  };
-  document.getElementById('searchInput').addEventListener('input', function () {
-    handleSearch(this.value);
-  });
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-wrap')) {
-      document.getElementById('searchResults').classList.remove('open');
-    }
-  });
+  document.getElementById('shortcutsToggle').onclick = () => document.getElementById('shortcutsPanel').classList.toggle('open');
+  document.getElementById('searchInput').addEventListener('input', function () { handleSearch(this.value); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrap')) document.getElementById('searchResults').classList.remove('open'); });
   window.addEventListener('resize', () => {
-    if (mainVizCanvas) renderLive();
-    Object.keys(labState).forEach(n => {
-      const s = labState[n];
-      if (s && s.update) s.update();
-    });
+    if (mainVizCanvas) {
+      const step = STEPS[state.currentStep];
+      if (step && step.viz && VIZ[step.viz]) {
+        const { ctx, w, h } = setupCanvas(mainVizCanvas);
+        let defaults = {};
+        if (step.viz === 'neuron') defaults = { weight: -0.360750, bias: 0.218262 };
+        else if (step.viz === 'relu') defaults = { z: 0.384029 };
+        else if (step.viz === 'hiddenLayer') defaults = { z0: 0.384029 };
+        else if (step.viz === 'outputLayer') defaults = { h0: 0.384029 };
+        else if (step.viz === 'softmax') defaults = { logit0: 1.2 };
+        else if (step.viz === 'loss') defaults = { pTarget: 0.073655 };
+        else if (step.viz === 'learningRate') defaults = { lr: 0.1 };
+        else if (step.viz === 'parameterUpdate') defaults = { old: 0.5, grad: -0.926345, lr: 0.1 };
+        else if (step.viz === 'trainingLoop') defaults = { iter: 1 };
+        else if (step.viz === 'learnedCheck') defaults = { animT: 1 };
+        else if (step.viz === 'finalPipeline') defaults = { activeStage: -1 };
+        VIZ[step.viz](ctx, w, h, defaults);
+      }
+    }
+    Object.keys(labState).forEach(n => { const s = labState[n]; if (s && s.update) s.update(); });
   });
 });
 
