@@ -170,7 +170,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;padding:18p
 /* card controls */
 .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px}
 .controls .spacer{flex:1}
-.modebtn{font-size:11px;letter-spacing:.1em;padding:7px 12px;border-radius:9px;border:1px solid var(--border);color:var(--muted);transition:.15s}
+.modebtn{font-size:11px;letter-spacing:.1em;padding:7px 12px;border-radius:999px;border:1px solid var(--border);color:var(--muted);transition:.15s}
 .modebtn:hover{color:var(--text);border-color:var(--border2)}
 .modebtn.on{color:var(--accent);border-color:rgba(94,234,212,.5);background:rgba(94,234,212,.08)}
 .audiobar{display:none;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border-radius:11px;border:1px solid rgba(94,234,212,.3);background:rgba(94,234,212,.05);flex-wrap:wrap}
@@ -276,7 +276,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;padding:18p
 /* misc */
 .muted{color:var(--muted)}
 .empty{color:var(--faint);font-size:13px;text-align:center;padding:20px 0}
-footer{max-width:1440px;margin:0 auto;padding:0 20px 40px;color:var(--faint);font-size:11.5px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+footer{max-width:1440px;margin:0 auto;padding:0 20px 40px;color:var(--faint);font-size:11.5px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+footer a{color:var(--accent);text-decoration:none;transition:.15s}
+footer a:hover{text-decoration:underline}
 @media(max-width:720px){
   main{padding:14px 12px 50px}
   #mapbar{padding:8px 12px;top:53px}
@@ -376,6 +378,7 @@ footer{max-width:1440px;margin:0 auto;padding:0 20px 40px;color:var(--faint);fon
 
 <footer>
   <span>TINY LLM · an interactive course in 30 steps</span>
+  <span>Contact: <a href="mailto:densanchez@gmail.com">densanchez@gmail.com</a></span>
   <span>Forward pass = calculate · Backward pass = assign blame · Update = change numbers</span>
 </footer>
 
@@ -544,398 +547,585 @@ const STEPS = [
 
 {n:22, t:"Hidden-Weight Gradients", p:"Assign blame to each hidden-layer weight: hidden gradient × input embedding value.", w:"Now that each hidden neuron carries its gradient, we can blame its weights the same way we blamed output weights: weight gradient = hidden gradient × input value. This reaches all the way back to the embedding of The.", inp:"4 hidden gradients and the embedding [0.278854, −0.949978, −0.449941, −0.553579].", proc:"For hidden weight connecting input i to hidden neuron j: gradient = hidden-gradientⱼ × xᵢ.", out:"A 4×4 matrix of hidden weight gradients — blame for the first layer of the network.", m:["Hidden weight gradient","∂L/∂W₁ = hidden gradient ⊗ input"], flow:[["HIDDEN GRADIENT","δ (per neuron)",""],["INPUT VALUE","0.278854","×"],["HIDDEN WEIGHT GRADIENT","δ × 0.278854","→"]], eli5:"Same rule as before, one layer deeper: blame = how wrong × how much input arrived.", pic:"Blame arrows continuing backward from hidden neurons to the four embedding dials.", rem:["Same chain-rule pattern at every layer: gradient × input.","Hidden-weight gradients let the model fix how words are mixed."], qz:[{q:"How is a hidden weight's gradient computed?",a:"hidden gradient × the input value feeding that weight."},{q:"What is the chain-rule pattern that repeats at every layer?",a:"weight gradient = (gradient of what is above) × (input from below)."}], rv:{inp:"hidden gradient δ, input 0.278854",out:"weight gradient = δ × 0.278854",q:"What happened here?",a:"The chain rule assigned blame to a hidden weight by multiplying the hidden neuron's gradient by its input value — the same pattern used for output weights."}, mem:{one:"Same rule, deeper layer: δ × input.",img:"Blame arrows reaching the embedding dials.",eq:"∂L/∂W₁ = δ_h ⊗ x",oneR:"One chain-rule pattern handles every weight in the network.",recall:"What two values multiply to give a hidden-weight gradient?"}},
 
-{n:23, t:"Hidden-Bias Gradients", p:"Each hidden bias takes its neuron's full gradient.", w:"Hidden biases behave exactly like output biases: they are added directly, so each inherits its neuron's complete gradient. Two of the four will be zero — their neurons' ReLU gates were closed.", inp:"The 4 hidden gradients.", proc:"hidden-bias-gradientᵢ = hidden-gradientᵢ (input is effectively 1).", out:"4 hidden bias gradients — two of them zero (neurons 1 and 2).", m:["Hidden bias gradient","∂L/∂b₁ = hidden gradient"], flow:[["HIDDEN GRADIENT (neuron 1)","δ (blocked gate → 0)",""],["BIAS GRADIENT","0","→"]], eli5:"Same as the output biases: the head start takes the whole correction note — but a silenced neuron has no note at all.", pic:"Four chair-height knobs; two get adjustment notes, two sit untouched.", rem:["bias gradient = hidden gradient.","Neurons 1 and 2: bias gradients 0 (closed gates)."], qz:[{q:"What are the hidden bias gradients for neurons 1 and 2?",a:"0 — their ReLU gates were closed, so their gradients are zero."},{q:"Why does a bias gradient equal its neuron's gradient?",a:"The bias contributes directly (×1), so the chain rule changes nothing."}], rv:{inp:"hidden gradient 0 (blocked neuron)",out:"bias gradient 0",q:"What happened here?",a:"The hidden bias inherited its neuron's gradient — and since the ReLU gate was closed, both are zero."}, mem:{one:"Bias takes its neuron's full gradient.",img:"Two knobs adjusted, two untouched.",eq:"∂L/∂b₁ = δ_h",oneR:"Blocked neurons get zero bias gradient.",recall:"Why are two hidden bias gradients zero?"}},
+{n:23, t:"Hidden-Bias Gradients", p:"Each hidden bias takes its neuron's full gradient.", w:"Hidden biases behave exactly like output biases: they are added directly, so each inherits its neuron's complete gradient. Two of the four will be zero — their neurons' ReLU gates were closed.", inp:"The 4 hidden gradients.", proc:"hidden-bias-gradientᵢ = hidden-gradientᵢ (input is effectively 1).", out:"4 hidden bias gradients — two of them zero (neurons 1 and 2).", m:["Hidden bias gradient","∂L/∂b₁ = hidden gradient"], flow:[["HIDDEN GRADIENT (neuron 1)","δ (per neuron)","="],["HIDDEN BIAS GRADIENT","δ","→"]], eli5:"Just like output biases: a bias is a direct offset, so its blame is the neuron's whole gradient.", pic:"Four bias dials receiving their individual blame notes directly from the neurons above.", rem:["hidden bias gradient = hidden neuron gradient.","Zero neuron gradient = zero bias gradient."], qz:[{q:"What is a hidden bias's gradient equal to?",a:"Its hidden neuron's gradient."},{q:"How many hidden bias gradients are zero for input 'The'?",a:"Two (neurons 1 and 2, whose ReLU derivative was 0)."}], rv:{inp:"hidden gradient 0",out:"bias gradient 0",q:"What happened here?",a:"A hidden neuron was zeroed by ReLU, so its hidden gradient was 0, giving its bias zero gradient as well."}, mem:{one:"Hidden bias gets hidden neuron's full blame.",img:"Bias dials taking notes directly from neurons.",eq:"∂L/∂b₁ = δ_h",oneR:"Bias gradients match neuron gradients directly.",recall:"What is the gradient of a hidden bias whose neuron output was zero?"}},
 
-{n:24, t:"Hidden-Layer Parameter Update", p:"Apply the update rule to hidden weights and biases: w ← w − 0.1 × gradient.", w:"Blame is only useful if we act on it. With hidden gradients in hand, we finally update the first layer of the network — the same subtraction rule as Step 17, now reaching the weights that mix the embedding itself.", inp:"Hidden weight gradients (4×4) and hidden bias gradients (4), learning rate 0.1.", proc:"For every hidden weight and bias: new = old − 0.1 × gradient. Blocked neurons' parameters stay unchanged this pass.", out:"Updated hidden layer — the network now mixes inputs differently.", m:["Hidden update","W₁ ← W₁ − 0.1·∂L/∂W₁   ·   b₁ ← b₁ − 0.1·∂L/∂b₁"], eli5:"Finally turning the inner dials, not just the outer ones.", pic:"A technician reaching inside the machine to adjust the first bank of dials.", rem:["Same update rule at every layer.","Parameters above closed ReLU gates do not move this pass."], qz:[{q:"What is the update rule for hidden weights?",a:"new = old − 0.1 × gradient — identical to the output layer update."},{q:"Which hidden parameters stay unchanged this pass?",a:"Those belonging to neurons 1 and 2, whose gradients are zero."}], rv:{inp:"hidden gradient δ, learning rate 0.1",out:"W₁, b₁ updated (zeros stay fixed)",q:"What happened here?",a:"The parameter update was applied to the hidden layer: every weight and bias moved by −0.1 × its gradient; zero-gradient parameters stayed put."}, mem:{one:"Turn the inner dials too.",img:"A hand reaching inside the machine.",eq:"W₁ ← W₁ − 0.1·g",oneR:"One update rule serves every parameter.",recall:"Which hidden parameters do not change this pass, and why?"}},
+{n:24, t:"Embedding Gradients", p:"Pass blame all the way back to the input word's embedding numbers.", w:"The chain rule does not stop at the first layer — it goes all the way back into the embedding matrix. Input gradientᵢ = Σⱼ (hidden-gradientⱼ × W₁[i][j]). This tells us how to tweak the 4 numbers that represent the word The so that future predictions improve.", inp:"4 hidden gradients and the 4×4 hidden weights W₁.", proc:"For input index i: input-gradientᵢ = Σⱼ (hidden-gradientⱼ × W₁[i][j]). Each of the 4 embedding numbers gets its own gradient.", out:"4 embedding gradients — direction to update the embedding vector of The.", m:["Embedding gradient","∂L/∂x = W₁ᵀ · δ_h"], flow:[["HIDDEN GRADIENT VECTOR","δ_h (4 values)",""],["WEIGHT MATRIX W₁","4×4 matrix","·"],["EMBEDDING GRADIENTS","4 gradients (one per embedding dimension)","→"]], eli5:"The blame travels into the spice jar itself: tweak the four recipe pinches for 'The' so it mixes better next time.", pic:"Four drops of dye falling into the four compartments of the 'The' spice jar.", rem:["Embeddings are parameters — they get updated too!","The full chain rule runs from Loss all the way back to Embeddings."], qz:[{q:"Are embeddings fixed, or do they learn during training?",a:"Embeddings learn! They receive gradients and get updated just like weights and biases."},{q:"How far back through the network does backprop reach?",a:"All the way from the loss to the input embedding numbers."}], rv:{inp:"hidden gradients + hidden weights W₁",out:"4 embedding gradients for 'The'",q:"What happened here?",a:"Backprop completed its journey, passing blame back through the first weight layer to produce gradients for the input embedding itself."}, mem:{one:"Blame reaches the word's secret recipe.",img:"Dye drops landing in a spice jar.",eq:"∂L/∂x = W₁ᵀ · δ_h",oneR:"Embeddings learn alongside every other parameter.",recall:"What receives gradients at the very end of backpropagation?"}},
 
-{n:25, t:"Update Everything Together", p:"Update all four parameter groups — W₁, b₁, W₂, b₂ — in a single training step.", w:"A real training step touches everything at once: after one forward and one backward pass, all 4×4 hidden weights, 4 hidden biases, 4×9 output weights, and 9 output biases move together. (We keep the embedding matrix frozen in this course to keep the arithmetic small.)", inp:"Gradients for every parameter group.", proc:"Apply w ← w − 0.1 × g to W₁, b₁, W₂, b₂ simultaneously, using gradients from the same backward pass.", out:"One fully updated model, ready for the next example.", m:["Full update","every parameter ← itself − 0.1 × its gradient"], eli5:"Tuning the whole engine in one go, not one screw at a time.", pic:"Four banks of dials rotating together in one smooth motion.", rem:["One step = one simultaneous update of all parameter groups.","Embeddings stay frozen in this course for simplicity."], qz:[{q:"Which parameter groups update together?",a:"W₁, b₁, W₂, b₂ — all in the same step."},{q:"Why are embeddings kept frozen here?",a:"To keep the arithmetic small and inspectable; real models also train embeddings."}], rv:{inp:"gradients for W₁, b₁, W₂, b₂",out:"all four groups updated",q:"What happened here?",a:"A complete training step: every parameter group was updated simultaneously from one backward pass."}, mem:{one:"All dials turn at once.",img:"Four dial banks rotating together.",eq:"θ ← θ − η·∇L(θ)",oneR:"One training step updates every parameter group together.",recall:"Which four parameter groups update in one step?"}},
+{n:25, t:"Full Training Iteration", p:"Walk through one complete round of forward pass, loss, backprop, and update.", w:"We have seen every piece individually — now look at the whole orchestra playing together. One full iteration takes an example (The → quick), runs forward to get P(quick) = 0.073655, measures loss = 2.608369, backprops to find all gradients, and updates every parameter by −0.1 × gradient.", inp:"One training example (The → quick) and the complete model.", proc:"Run Forward → Loss → Backward → Update. Every weight, bias, and embedding row shifts slightly downhill.", out:"All parameters updated once. Loss drops on the next forward pass.", m:["Full iteration","Forward → Loss → Backward → Update"], eli5:"One full lap around the practice track: start line, run, check your time, fix your posture, step back to the start line.", pic:"A four-quadrant loop diagram highlighting all four quarters in sequence: Forward, Loss, Backward, Update.", rem:["One iteration = 1 example fully processed.","Forward gives the guess; Backward assigns blame; Update fixes parameters."], qz:[{q:"What is the order of operations in one training iteration?",a:"Forward pass → calculate loss → backward pass (gradients) → update parameters."},{q:"What happens to the loss after a full iteration?",a:"The loss drops on the next forward pass for that example."}], rv:{inp:"Initial model + example (The→quick)",out:"Updated model with lower loss on (The→quick)",q:"What happened here?",a:"A complete training cycle ran end-to-end, nudging every parameter to make 'quick' more likely after 'The'."}, mem:{one:"Forward, Loss, Backward, Update — done.",img:"A four-quadrant loop fully lit up.",eq:"Iter(x,y) = Update(Backward(Loss(Forward(x),y)))",oneR:"One full iteration touches every stage of the machine.",recall:"What four steps make up a full training iteration?"}},
 
-{n:26, t:"Train Across All 8 Examples", p:"Run the full loop once per training example — that is one epoch.", w:"The model must not just memorize one pair; it needs to do well on all 8 (The→quick, quick→brown, …, lazy→dog). One epoch = forward, loss, backward, and update for each example in turn. Each example pulls the parameters a little in its own direction.", inp:"All 8 training examples and the current model.", proc:"Loop over the 8 examples: for each, run forward pass, compute loss, backpropagate, update. Repeat for many epochs.", out:"A model balanced across the entire sentence — better on every word, not just one.", m:["Epoch","1 epoch = 8 examples × (forward + loss + backward + update)"], eli5:"Practicing every flashcard in the deck once, instead of drilling the same card all day.", pic:"A card carousel feeding eight flashcards through the four-station loop, one after another.", rem:["Epoch = one pass through all 8 examples.","Each example nudges parameters toward its own target."], qz:[{q:"What is an epoch?",a:"One complete pass through all 8 training examples."},{q:"Why train on all examples instead of just one?",a:"Each example pulls parameters its own way; training on all of them balances the model across the whole sentence."}], rv:{inp:"8 examples",out:"8 updates per epoch",q:"What happened here?",a:"The training loop ran across every example — 8 forward/backward/update cycles made up one epoch."}, mem:{one:"One loop per flashcard, every card.",img:"A carousel of eight flashcards.",eq:"1 epoch = 8 × (fwd + bwd + update)",oneR:"An epoch visits every example once.",recall:"How many training iterations make one epoch here?"}},
+{n:26, t:"Epoch 1 Complete", p:"Train on all 8 examples in sequence — one full epoch.", w:"An epoch is one complete sweep through all 8 training examples: (The→quick), (quick→brown), …, (lazy→dog). After 8 iterations, every word in the vocabulary has had its embedding and predictions adjusted once.", inp:"All 8 training examples, processed one by one.", proc:"For example 1 to 8: run full iteration. Average the 8 losses to get the epoch loss.", out:"Epoch 1 complete. Total loss drops noticeably across the dataset.", m:["Epoch 1","8 iterations = 1 epoch"], eli5:"Reading through the whole study guide once, working every practice question on the page.", pic:"Eight flashcards stacked; a checkmark appears on each as it is processed, until the whole stack is checked.", rem:["1 epoch = 8 iterations (one per training example).","Average loss drops after every epoch."], qz:[{q:"What defines one epoch for our model?",a:"Processing all 8 training examples once (8 iterations)."},{q:"Why do we track average epoch loss?",a:"To measure overall dataset progress rather than just single-example swings."}], rv:{inp:"8 training examples",out:"Model after 1 full pass over all examples",q:"What happened here?",a:"The model completed Epoch 1 by training on all 8 examples in order, lowering its overall dataset loss."}, mem:{one:"All 8 flashcards answered once.",img:"A stack of 8 flashcards, all checkmarked.",eq:"1 epoch = 8 examples processed",oneR:"An epoch sweeps through the entire dataset.",recall:"How many iterations make up one epoch in this course?"}},
 
-{n:27, t:"Check Whether the Model Learned", p:"Compare the verified checkpoints: did loss fall and did P(quick) rise?", w:"Numbers, not vibes. At step 1 the loss was 2.608369 with P(quick) = 0.073655. By step 20 the verified loss is 0.549986 and P(quick) reaches 0.576958 — the model now picks quick over half the time. Honest caveat: this is a 9-word toy; it demonstrates the mechanics of learning, not useful language ability.", inp:"Verified metrics from early and later training.", proc:"Compare checkpoints (each recorded just BEFORE its update): loss 2.608369 → 0.549986; P(quick) 0.073655 → 0.576958.", out:"Loss −2.058383; P(quick) +0.503304. Learning confirmed — mechanically.", m:["Learning check","Δloss = −2.058383   ·   ΔP(quick) = +0.503304"], flow:[["LOSS at step 1","2.608369",""],["LOSS at step 20","0.549986","−2.058383"],["P(quick) at step 1","0.073655",""],["P(quick) at step 20","0.576958","+0.503304"]], eli5:"Weighing yourself before and after a diet — same scale, same time, to see real change.", pic:"Two photos side by side: a frowning gauge at 2.61 and a calmer one at 0.55.", rem:["Loss fell from 2.608369 to 0.549986.","P(quick) rose from 0.073655 to 0.576958.","Toy model = learning mechanics, not intelligence."], qz:[{q:"By how much did the loss decrease?",a:"2.058383 — from 2.608369 down to 0.549986."},{q:"Why is P(quick) = 0.576958 not 'understanding'?",a:"This 9-word model only demonstrates training mechanics; real language needs vastly more data and scale."}], rv:{inp:"loss 2.608369 → 0.549986",out:"learning confirmed",q:"What happened here?",a:"Loss fell by 2.058383 while P(quick) rose by 0.503304 — verified evidence that the training loop works."}, mem:{one:"Loss down 2.06, P(quick) up 0.50.",img:"A before/after gauge photo.",eq:"2.608 → 0.550 loss; 0.074 → 0.577 P(quick)",oneR:"Metrics prove the mechanics; scale is what real LLMs add.",recall:"What were the loss values at steps 1 and 20?"}},
+{n:27, t:"Multi-Epoch Training", p:"Train for 50 epochs and watch the loss collapse from 2.61 down to 0.55.", w:"One epoch is not enough — neural networks learn through cumulative repetition. Over 50 epochs (400 total iterations), the parameters fine-tune each other. Loss plummets from 2.608369 down to 0.55, while P(quick) after The climbs from 0.073655 to 0.576959.", inp:"50 epochs (400 iterations) over the 8 examples.", proc:"Repeat the epoch loop 50 times. Parameters adjust smoothly; loss curve slopes down toward 0.55.", out:"A trained model with loss 0.5500 and P(quick|The) = 0.576959.", m:["50 epochs","Loss: 2.608369 → 0.5500"], flow:[["START · Loss","2.608369","P(quick) = 0.073655"],["50 EPOCHS LATER · Loss","0.550000","P(quick) = 0.576959"]], eli5:"Practicing the piano piece 50 times in a row until your fingers play it smoothly without stumbling.", pic:"A line graph showing a smooth downward curve for loss and an upward curve for P(quick).", rem:["Initial loss: 2.608369 → Final loss: 0.5500.","Initial P(quick): 0.073655 → Final P(quick): 0.576959."], qz:[{q:"What happens to loss over 50 epochs of training?",a:"It drops from 2.608369 down to 0.5500."},{q:"What happens to P(quick) for input 'The'?",a:"It climbs from 0.073655 to 0.576959 — the model now confidently predicts 'quick'."}], rv:{inp:"Loss = 2.608369",out:"Loss = 0.5500 after 50 epochs",q:"What happened here?",a:"50 epochs of repetition drove the loss down and boosted P(quick) from 7% to 58%."}, mem:{one:"50 rounds of practice make the model smart.",img:"A line graph curving steeply downhill.",eq:"Loss: 2.61 → 0.55,  P(quick): 0.07 → 0.58",oneR:"Repetition is what turns random weights into knowledge.",recall:"What is the final loss after 50 epochs?"}},
 
-{n:28, t:"Build Prediction Function", p:"Package the trained forward pass as one function: word in, next-word probabilities out.", w:"Training is over; now we use the machine. The prediction function wraps embedding → hidden → ReLU → output → softmax into a single callable routine — the same forward pass, now treated as a finished product.", inp:"Any single word from the vocabulary.", proc:"Look up its embedding, run the verified forward pass, return the 9 probabilities (or just the argmax — the single most likely next word).", out:"A next-word prediction: e.g. predict(The) → quick with the highest probability.", m:["Prediction","predict(w) = argmax(softmax(W₂·ReLU(W₁·E[w] + b₁) + b₂))"], eli5:"Wrapping the whole machine in a vending machine button: press a word, get the next word.", pic:"A vending machine with word buttons; pressing 'The' drops a card reading 'quick 0.577'.", rem:["Prediction = the trained forward pass, reused.","argmax picks the single most likely next word."], qz:[{q:"What does the prediction function contain?",a:"Exactly the trained forward pass: embedding lookup, hidden layer, ReLU, output layer, softmax."},{q:"What does argmax return?",a:"The single word with the highest probability."}], rv:{inp:"predict(The)",out:"quick (highest probability)",q:"What happened here?",a:"The trained forward pass was packaged as a function: input word The produced quick as the most likely next word."}, mem:{one:"Wrap the forward pass in one button.",img:"A vending machine for next words.",eq:"predict(w) = argmax softmax(...)",oneR:"Training builds the machine; prediction just runs it.",recall:"What is the most likely next word after 'The' in the trained model?"}},
+{n:28, t:"Prediction", p:"Give the trained model 'The' and pick the word with the highest probability.", w:"Training is over — now we use the model! Pass input word The through the trained network: lookup embedding → hidden layer → output logits → softmax. The trained model gives quick a top probability of 0.576959.", inp:"Input word The (ID 0).", proc:"Forward pass through trained parameters. Output probabilities: quick = 0.576959 (highest by far). Take argmax: ID 1 = quick.", out:"Predicted word: quick (confidence 57.7%).", m:["Greedy prediction","next_token = argmax(Softmax(Forward(The)))"], flow:[["INPUT","The (ID 0)","forward pass"],["TOP PROBABILITY","quick (ID 1)","P = 0.576959"],["PREDICTION","quick","✓ correct"]], eli5:"Asking a student who studied for weeks: 'What comes after The?' They instantly answer 'quick!' with high confidence.", pic:"A spotlight shining on the winner's podium, where the word card 'quick' stands tallest.", rem:["Prediction = run forward pass and pick argmax probability.","The trained model correctly predicts quick after The with 57.7% confidence."], qz:[{q:"How does greedy prediction pick the next word?",a:"It runs a forward pass and picks the word ID with the highest softmax probability (argmax)."},{q:"What is the trained model's top prediction for input 'The'?",a:"'quick' with 57.7% probability."}], rv:{inp:"Input: 'The'",out:"Predicted: 'quick' (P = 0.576959)",q:"What happened here?",a:"The trained model ran a forward pass on 'The' and predicted 'quick' as the most likely next word."}, mem:{one:"Feed a word, pick the top probability.",img:"A spotlight on the highest word podium.",eq:"next = argmax(P)",oneR:"Greedy prediction selects the winning ID directly.",recall:"What word does the trained model predict after 'The'?"}},
 
-{n:29, t:"Generate Text", p:"Feed each prediction back in as the next input and let the sentence extend itself.", w:"One prediction is nice; a loop of predictions is generation. Take the predicted word, feed it back as the new input, and repeat. The model walks word by word through its own output — this is the seed of how every LLM writes text.", inp:"A starting word (e.g. The) and the prediction function.", proc:"Repeat: predict next word from current word → append it → use it as the new input. Optionally sample probabilistically instead of always taking the argmax.", out:"A generated chain, e.g. The → quick → brown → fox → jumps → over → the → lazy → dog — the model reproducing its training sentence.", m:["Generation","wₜ₊₁ = predict(wₜ), repeated"], eli5:"A game of telephone with yourself: say a word, hear the next, say that one, and keep going.", pic:"A snake of word-cards where each new card is copied from the machine's last output and fed back into its slot.", rem:["Generation = prediction in a feedback loop.","On this tiny model it reproduces its one sentence; sampling adds variety."], qz:[{q:"How does text generation work?",a:"Repeatedly predict the next word and feed that prediction back in as the new input."},{q:"What is the difference between argmax and sampling?",a:"argmax always picks the single best word; sampling rolls weighted dice, adding variety."}], rv:{inp:"start: The",out:"The → quick → brown → fox → …",q:"What happened here?",a:"Predictions were fed back as inputs in a loop — the model generated a chain of words, step by step."}, mem:{one:"Predict, feed back, repeat.",img:"A snake of cards eating its own tail.",eq:"wₜ₊₁ = predict(wₜ)",oneR:"Every LLM writes text by looping prediction.",recall:"What makes generation different from a single prediction?"}},
+{n:29, t:"Text Generation", p:"Feed the predicted word back as input to generate a sentence word by word.", w:"Language models generate long text by auto-regression: predict one word, append it to the prompt, and feed it back as the next input. Repeat until a full sentence forms.", inp:"Start word: The.", proc:"Step 1: The → quick. Step 2: quick → brown. Step 3: brown → fox. Repeat: jumps → over → the → lazy → dog.", out:"Generated sequence: The quick brown fox jumps over the lazy dog.", m:["Auto-regression","x_{t+1} = predict(x_t)"], flow:[["The","→","quick"],["quick","→","brown"],["brown","→","fox"],["fox","→","jumps"],["jumps","→","over"],["over","→","the"],["the","→","lazy"],["lazy","→","dog"]], eli5:"A word train: each boxcar pulls the next boxcar behind it, building a complete train word by word.", pic:"A chain of word tiles clicking into place one after another in a continuous ribbon.", rem:["Text generation = loop prediction fed into input.","The model recreates its entire training sentence step by step!"], qz:[{q:"What is auto-regressive text generation?",a:"Using the model's predicted output word as the input for the next prediction step."},{q:"What full sentence does our trained model generate starting from 'The'?",a:"'The quick brown fox jumps over the lazy dog'."}], rv:{inp:"Prompt: 'The'",out:"Generated: 'The quick brown fox jumps over the lazy dog'",q:"What happened here?",a:"Auto-regression generated the full 9-word sentence by feeding each predicted word back in as the next prompt."}, mem:{one:"Each output becomes the next input.",img:"A chain of word tiles clicking together.",eq:"x_{t+1} = model(x_t)",oneR:"Auto-regression builds whole sentences one word at a time.",recall:"What is the term for feeding predictions back as inputs?"}},
 
-{n:30, t:"Final End-to-End Test", p:"Run the entire pipeline in one breath: from raw text to generated words.", w:"The last step connects everything: the same sentence becomes tokens, IDs, embeddings, hidden thoughts, logits, probabilities, loss, gradients, updated parameters — and finally new text. If you can narrate this chain, you understand the basic training loop of a language model.", inp:"The training sentence and the fully trained tiny model.", proc:"TEXT → TOKENS → NUMBERS → HIDDEN REPRESENTATION → LOGITS → PROBABILITIES → LOSS → GRADIENTS → UPDATED PARAMETERS → TRAINING → PREDICTION → GENERATED TEXT.", out:"Generated text — plus a complete mental model of a language machine.", m:["The whole machine","text ⇄ numbers, forward to predict, backward to learn"], eli5:"Taking the training wheels off and riding the whole bike in one go.", pic:"The entire machine in one wide diagram, every stage lit up, humming quietly.", rem:["You now understand the basic training loop of a tiny language model.","Forward pass answers · backward pass blames · update fixes · loop repeats."], qz:[{q:"Name the full chain from text to generated text.",a:"Text → tokens → IDs/embeddings → hidden layer (ReLU) → logits → softmax probabilities → loss → gradients → parameter updates → training loop → prediction → generation."},{q:"What are the three distinct passes in training?",a:"Forward pass (calculate), backward pass (assign blame), parameter update (change numbers)."}], rv:{inp:"The quick brown fox jumps over the lazy dog",out:"the model's generated continuation",q:"What happened here?",a:"The complete pipeline ran end to end: text became numbers, numbers became predictions, mistakes became gradients, gradients became updates — and updates became new text."}, mem:{one:"You have seen the whole machine.",img:"Every stage lit up at once.",eq:"text → numbers → prediction → loss → gradients → update → text",oneR:"Forward predicts; backward blames; updates fix; loops repeat.",recall:"What are the three passes, in order?"}}
+{n:30, t:"Master Summary", p:"You have mastered the complete mechanics of a language model.", w:"Congratulations! You have walked every single step of an LLM: tokenization, vocabulary, embeddings, hidden layers, ReLU, output logits, softmax, cross-entropy loss, logit gradients, backpropagation, parameter updates, training loops, multi-epoch training, prediction, and auto-regressive generation. You now understand how large models like ChatGPT work inside — because they use these exact same math principles at a larger scale.", inp:"30 steps completed across 5 chapters.", proc:"Review the entire chain: Text → Tokens → IDs → Embeddings → Hidden → Logits → Softmax → Loss → Gradients → Update → Repeat → Generate.", out:"Complete intuitive and mathematical understanding of LLMs.", m:["Complete Course","30 / 30 steps mastered"], eli5:"You have disassembled the whole watch, inspected every gear, put it back together, and watched it tick perfectly.", pic:"A glowing master blueprint of the entire network with all 30 steps illuminated.", rem:["Real LLMs use these EXACT same math principles.","Forward = guess · Backward = blame · Update = learn."], qz:[{q:"What are the three core actions of any trained neural network?",a:"Forward pass (calculate predictions), Backward pass (compute gradients), Update (adjust parameters)."},{q:"How do real-world LLMs differ from this Tiny LLM?",a:"Scale! Real LLMs use billions of parameters and context windows of thousands of tokens, but the fundamental math (embeddings, layers, softmax, backprop, updates) is identical."}], rv:{inp:"Start of course (0 knowledge)",out:"30 steps mastered — complete LLM mechanics",q:"What happened here?",a:"You learned every stage of a language model, from raw text to trained text generation."}, mem:{one:"You now know how an LLM thinks.",img:"A glowing master blueprint fully lit up.",eq:"LLM = Text → Embed → Hidden → Softmax → Loss → Backprop → Update",oneR:"Scale changes quantity, but the mechanics remain identical.",recall:"What three core steps drive all neural network training?"}}
 ];
 
-/* ---------- STATE ---------- */
-const LS_KEY = "tinyllm_progress_v1";
-let state = { step:1, completed:{}, review:{}, sound:true };
-try{
-  const raw = localStorage.getItem(LS_KEY);
-  if(raw) state = Object.assign(state, JSON.parse(raw));
-}catch(e){}
-function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
-let mode = "learn";           // learn | quiz | reverse | memory
-const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* ---------- APP STATE ---------- */
+const state = {
+  curStep: 1,
+  completed: new Set(),
+  theme: 'dark',
+  sound: true,
+  mode: 'learn', // 'learn', 'quiz', 'review', 'mem'
+  playbackSpeed: 1.0,
+  isSpeaking: false
+};
 
-/* ---------- HELPERS ---------- */
-const $ = s => document.querySelector(s);
-const esc = s => s;
-function linkify(text){
-  // wrap known terms in clickable buttons (longest first)
-  let out = text;
-  Object.keys(TERMS).sort((a,b)=>b.length-a.length).forEach(t=>{
-    const re = new RegExp("(?<![\\w>])"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![\\w<])","gi");
-    out = out.replace(re, m => `<button class="term" data-term="${t}">${m}</button>`);
-  });
-  return out;
-}
-function flowHTML(rows){
-  return `<div class="flow">${rows.map((r,i)=>{
-    const v = r[1];
-    const cls = v.startsWith("−")||v.startsWith("-") ? "fv neg" : (/^\+|^0\.\d|^\d/.test(v)&&!v.includes("→")&&!/[a-zA-Z]/.test(v.replace(/[−\.,\[\]\s]/g,""))) ? "fv pos" : "fv";
-    return `${i?`<div class="farrow">↓</div>`:""}<div class="frow"><span class="fl">${r[0]}</span><span class="${cls}">${v}</span>${r[2]?`<span class="fop">${r[2]}</span>`:""}</div>`;
-  }).join("")}</div>`;
-}
-function stepStatus(n){
-  if(state.review[n]) return "review";
-  if(state.completed[n]) return "done";
-  if(n === state.step) return "cur";
-  return "up";
+/* ---------- DOM ELEMENTS ---------- */
+const $ = id => document.getElementById(id);
+const cardwrap = $('cardwrap');
+const mapscroll = $('mapscroll');
+const ringfg = $('ringfg');
+const ringtxt = $('ringtxt');
+const headStepTxt = $('headStepTxt');
+const headChapTxt = $('headChapTxt');
+
+/* ---------- INITIALIZATION ---------- */
+function init() {
+  loadSavedState();
+  renderMapBar();
+  renderStep(state.curStep);
+  renderRailPanels();
+  setupEventListeners();
+  setupShortcuts();
+  updateProgressUI();
 }
 
-/* ---------- RENDER: header + map ---------- */
-function renderHeader(){
-  const done = Object.keys(state.completed).length;
-  $("#ringtxt").textContent = done + "/30";
-  $("#ringfg").style.strokeDashoffset = (97.4 * (1 - done/30)).toFixed(1);
-  $("#headStepTxt").textContent = "STEP " + state.step + " OF 30";
-  $("#headChapTxt").textContent = chapLabel(state.step);
-}
-function renderMap(){
-  $("#mapscroll").innerHTML = MAPSTAGES.map(([lbl,sn],i)=>{
-    const st = stepStatus(sn);
-    const curCls = sn === state.step ? " cur" : st === "done" ? " done" : "";
-    return `<button class="mapnode${curCls}" data-go="${sn}" title="Step ${sn} · ${STEPS[sn-1].t}">
-      <span class="lbl">${lbl}</span><span class="st">${st==="done"?"✓ done":st==="cur"?"● now":"step "+sn}</span>
-    </button>${i<MAPSTAGES.length-1?`<span class="maparrow" aria-hidden="true">→</span>`:""}`;
-  }).join("");
+/* ---------- LOCAL STORAGE ---------- */
+function loadSavedState() {
+  try {
+    const saved = localStorage.getItem('tiny_llm_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state.curStep = parsed.curStep || 1;
+      state.completed = new Set(parsed.completed || []);
+      state.theme = parsed.theme || 'dark';
+      state.sound = parsed.sound !== undefined ? parsed.sound : true;
+    }
+  } catch(e) { console.error('Failed to load state', e); }
+  document.documentElement.setAttribute('data-theme', state.theme);
+  updateSoundBtn();
 }
 
-/* ---------- RENDER: card ---------- */
-function renderCard(){
-  const s = STEPS[state.step-1];
-  const prev = STEPS[state.step-2], next = STEPS[state.step+1];
-  const st = stepStatus(s.n);
-  const stChip = st==="done" ? `<span class="chip done"><span class="dot"></span>COMPLETED</span>`
-    : st==="review" ? `<span class="chip review"><span class="dot"></span>TO REVIEW</span>`
-    : `<span class="chip cur"><span class="dot"></span>IN PROGRESS</span>`;
+function saveState() {
+  try {
+    localStorage.setItem('tiny_llm_state', JSON.stringify({
+      curStep: state.curStep,
+      completed: Array.from(state.completed),
+      theme: state.theme,
+      sound: state.sound
+    }));
+  } catch(e) { console.error('Failed to save state', e); }
+}
 
-  let body = "";
-  if(mode === "learn"){
-    body = `
+/* ---------- RENDER MAP BAR ---------- */
+function renderMapBar() {
+  mapscroll.innerHTML = MAPSTAGES.map(([label, stepNum]) => {
+    const isDone = state.completed.has(stepNum);
+    const isCur = state.curStep === stepNum;
+    const cls = `mapnode ${isDone ? 'done' : ''} ${isCur ? 'cur' : ''}`;
+    return `<button class="${cls}" data-step="${stepNum}">
+      <span class="lbl">${label}</span>
+      <span class="st">STEP ${stepNum}</span>
+    </button><span class="maparrow">›</span>`;
+  }).join('').slice(0, -27); // remove trailing arrow
+}
+
+/* ---------- RENDER STEP CARD ---------- */
+function renderStep(n) {
+  state.curStep = n;
+  saveState();
+  const s = STEPS.find(item => item.n === n);
+  if (!s) return;
+
+  const chap = chapOf(n);
+  headStepTxt.textContent = `STEP ${n}`;
+  headChapTxt.textContent = `CHAPTER ${chap.id} · ${chap.name}`;
+
+  // Mode header / toggle
+  let modeHeader = '';
+  if (state.mode === 'quiz') modeHeader = `<div class="modehead"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>KNOWLEDGE CHECK MODE</div>`;
+  else if (state.mode === 'review') modeHeader = `<div class="modehead" style="color:var(--amber)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>REVISION MODE</div>`;
+  else if (state.mode === 'mem') modeHeader = `<div class="modehead" style="color:var(--violet)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>MEMORY REBUILD MODE</div>`;
+
+  // Chain navigation
+  const prevS = STEPS.find(x => x.n === n - 1);
+  const nextS = STEPS.find(x => x.n === n + 1);
+  const chainHtml = `
     <div class="chain">
-      <div class="c prev" data-go="${prev?prev.n:1}" role="button" tabindex="0"><b>WHAT CAME BEFORE</b>${prev?("Step "+prev.n+" · "+esc(prev.t)):"—"}</div>
-      <div class="c now"><b>WHAT HAPPENS NOW</b>${esc(s.p)}</div>
-      <div class="c next" data-go="${next?next.n:30}" role="button" tabindex="0"><b>WHAT HAPPENS NEXT</b>${next?("Step "+next.n+" · "+esc(next.t)):"Course complete"}</div>
-    </div>
-    <div class="grid2">
-      <div class="block"><h4>WHY IT EXISTS</h4><p>${linkify(s.w)}</p></div>
-      <div class="block"><h4>MENTAL PICTURE</h4><p>${esc(s.pic)}</p></div>
-    </div>
-    <div class="io">
-      <div class="io-col"><h4>INPUT — what goes in</h4><p>${linkify(s.inp)}</p></div>
-      <div class="io-col proc"><h4>PROCESS — what happens</h4><p>${linkify(s.proc)}</p></div>
-      <div class="io-col"><h4>OUTPUT — what comes out</h4><p>${linkify(s.out)}</p></div>
-    </div>
-    ${s.flow?flowHTML(s.flow):""}
-    <div class="mathbox"><h4>SIMPLE MATH</h4><div class="eq">${s.m[1]}</div><div class="mlabel">${s.m[0]}</div></div>
-    <div class="tech"><h4>TECHNICAL VERSION</h4><p>${linkify(s.proc)} ${linkify(s.w)}</p></div>
-    <div class="eli5"><h4>EXPLAIN LIKE I'M 5</h4><p>${esc(s.eli5)}</p></div>
-    <div class="remember">${s.rem.map(r=>`<span class="rtag">${esc(r)}</span>`).join("")}</div>`;
-  }
-  else if(mode === "quiz"){
-    body = `<div class="modehead">ACTIVE RECALL — answer before revealing</div>
-      ${s.qz.map((q,i)=>`<div class="quizq" data-qi="${i}"><div class="q">${i+1}. ${esc(q.q)}</div>
-        <button class="btn sm ghost" data-reveal="${i}">REVEAL ANSWER</button>
-        <div class="a">${esc(q.a)}</div></div>`).join("")}
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
-        <button class="btn primary" data-gotit="1">I GOT IT</button>
-        <button class="btn" data-review="1">I NEED TO REVIEW</button>
-      </div>
-      <p class="muted" style="font-size:12px;margin-top:12px">Answer each question in your head first. Retrieval — not rereading — builds memory. Status is saved locally.</p>`;
-  }
-  else if(mode === "reverse"){
-    body = `<div class="modehead">REVERSE IT — explain the result</div>
-      <div class="revbox">
-        <div class="frow" style="align-items:flex-start"><span class="fl">INPUT</span><span class="fv mono" style="font-size:14px">${esc(s.rv.inp)}</span></div>
-        <div class="farrow" style="text-align:center">↓</div>
-        <div class="frow"><span class="fl">OUTPUT</span><span class="fv pos" style="font-size:16px">${esc(s.rv.out)}</span></div>
-      </div>
-      <div class="quizq"><div class="q">${esc(s.rv.q)}</div>
-        <button class="btn sm ghost" data-reveal="0">REVEAL ANSWER</button>
-        <div class="a">${esc(s.rv.a)}</div></div>
-      <p class="muted" style="font-size:12px">Explaining a result yourself is the strongest test of understanding.</p>`;
-  }
-  else if(mode === "memory"){
-    const mm = s.mem;
-    body = `<div class="modehead">MEMORY MODE — compress this step</div>
-      <div class="memgrid">
-        <div class="mg"><h5>ONE-LINE VERSION</h5><p>${esc(mm.one)}</p></div>
-        <div class="mg"><h5>MENTAL IMAGE</h5><p>${esc(mm.img)}</p></div>
-        <div class="mg"><h5>KEY EQUATION</h5><div class="eq">${mm.eq}</div></div>
-        <div class="mg"><h5>ONE THING TO REMEMBER</h5><p>${esc(mm.oneR)}</p></div>
-        <div class="mg"><h5>ACTIVE RECALL</h5><p>${esc(mm.recall)}</p>
-          <button class="btn sm ghost" data-reveal="0" style="margin-top:8px">REVEAL</button>
-          <div class="a quizq" style="display:none;border:none;padding:8px 0 0;margin-top:8px"><div class="a" style="display:block;border:none;padding:0;color:var(--green)">${esc(s.qz[0].a)}</div></div>
-        </div>
-      </div>`;
-  }
-
-  // step 30 finale
-  let finale = "";
-  if(s.n === 30){
-    const j = ["TEXT","TOKENS","NUMBERS","HIDDEN REPRESENTATION","LOGITS","PROBABILITIES","LOSS","GRADIENTS","UPDATED PARAMETERS","TRAINING","PREDICTION","GENERATED TEXT"];
-    finale = `<div style="text-align:center;margin-top:26px;border-top:1px solid var(--border);padding-top:26px">
-      <p style="font-size:12px;letter-spacing:.18em;color:var(--accent);margin-bottom:14px">THE ENTIRE JOURNEY</p>
-      <div class="jchain">${j.map((w,i)=>`<span class="jchip">${w}</span>${i<j.length-1?`<span class="jarrow">→</span>`:""}`).join("")}</div>
-      <p style="font-size:17px;font-weight:600;margin:16px 0 4px">YOU NOW UNDERSTAND THE BASIC TRAINING LOOP OF A TINY LANGUAGE MODEL.</p>
-      <p class="mono" style="color:var(--accent);letter-spacing:.2em;font-size:12px;margin-bottom:16px">30 STEPS COMPLETE</p>
-      <button class="btn primary" data-go-map="1">REPLAY FROM THE MASTER MAP</button>
+      ${prevS ? `<div class="c prev" data-step="${n-1}"><b>‹ PREVIOUS</b>${prevS.t}</div>` : `<div></div>`}
+      <div class="c now"><b>CURRENT STEP ${n} OF 30</b>${s.t}</div>
+      ${nextS ? `<div class="c next" data-step="${n+1}"><b>NEXT ›</b>${nextS.t}</div>` : `<div></div>`}
     </div>`;
+
+  let mainBodyHtml = '';
+
+  if (state.mode === 'learn') {
+    // Standard Learn Mode
+    const rememberTags = (s.rem || []).map(r => `<span class="rtag">${highlightTerms(r)}</span>`).join('');
+    
+    let ioHtml = '';
+    if (s.inp || s.proc || s.out) {
+      ioHtml = `<div class="io">
+        <div class="io-col"><h4>INPUT</h4><p>${highlightTerms(s.inp || '')}</p></div>
+        <div class="io-col proc"><h4>PROCESS</h4><p>${highlightTerms(s.proc || '')}</p></div>
+        <div class="io-col"><h4>OUTPUT</h4><p>${highlightTerms(s.out || '')}</p></div>
+      </div>`;
+    }
+
+    let flowHtml = '';
+    if (s.flow) {
+      flowHtml = `<div class="flow">` + s.flow.map(f => `
+        <div class="frow">
+          <span class="fl">${f[0]}</span>
+          <span class="fv ${f[2]==='+'?'pos':f[2]==='-'?'neg':''}">${f[1]}</span>
+        </div>
+        ${f[2] ? `<span class="fop">${f[2]}</span>` : ''}
+      `).join('<span class="farrow">↓</span>') + `</div>`;
+    }
+
+    mainBodyHtml = `
+      <p class="purpose">${highlightTerms(s.w)}</p>
+      ${chainHtml}
+      ${ioHtml}
+      ${flowHtml}
+      ${s.m ? `<div class="mathbox"><h4>MATH & FORMULA</h4><div class="eq">${s.m[1]}</div><div class="mlabel">${s.m[0]}</div></div>` : ''}
+      ${s.eli5 ? `<div class="eli5"><h4>ELI5 · SIMPLE ANALOGY</h4><p>${highlightTerms(s.eli5)}</p></div>` : ''}
+      ${s.pic ? `<div class="tech"><h4>VISUAL CONCEPT</h4><p>${highlightTerms(s.pic)}</p></div>` : ''}
+      ${rememberTags ? `<div class="remember">${rememberTags}</div>` : ''}
+    `;
+  } else if (state.mode === 'quiz') {
+    // Quiz Mode
+    const qList = (s.qz || []).map((q, idx) => `
+      <div class="quizq" id="qz_${idx}">
+        <div class="q">${idx + 1}. ${q.q}</div>
+        <button class="btn sm primary btn-show-ans" data-target="qz_${idx}">Reveal Answer</button>
+        <div class="a">${q.a}</div>
+      </div>
+    `).join('');
+    mainBodyHtml = `
+      <p class="purpose">Test your understanding of <b>${s.t}</b> before moving on.</p>
+      ${chainHtml}
+      <div style="margin:16px 0">${qList || '<p class="muted">No quiz questions for this step.</p>'}</div>
+    `;
+  } else if (state.mode === 'review') {
+    // Review Mode
+    mainBodyHtml = `
+      <p class="purpose">Quick revision summary for <b>${s.t}</b>.</p>
+      ${chainHtml}
+      <div class="revbox">
+        <h4 style="font-size:11px;letter-spacing:.14em;color:var(--amber);margin-bottom:8px">STEP REVISION SUMMARY</h4>
+        <p style="font-size:14px;margin-bottom:10px"><b>Input:</b> ${s.rv ? s.rv.inp : s.inp}</p>
+        <p style="font-size:14px;margin-bottom:10px"><b>Output:</b> ${s.rv ? s.rv.out : s.out}</p>
+        <p style="font-size:14px;color:var(--text)"><b>Core Takeaway:</b> ${s.p}</p>
+      </div>
+    `;
+  } else if (state.mode === 'mem') {
+    // Memory Rebuild Mode
+    mainBodyHtml = `
+      <p class="purpose">Rebuild the mental model for <b>${s.t}</b> in 10 seconds.</p>
+      ${chainHtml}
+      <div class="memgrid">
+        <div class="mg"><h5>1-SENTENCE SUMMARY</h5><p>${s.mem ? s.mem.one : s.p}</p></div>
+        <div class="mg"><h5>MENTAL IMAGE</h5><p>${s.mem ? s.mem.img : s.pic}</p></div>
+        <div class="mg"><h5>CORE EQUATION / PATTERN</h5><div class="eq">${s.mem ? s.mem.eq : (s.m ? s.m[1] : 'N/A')}</div></div>
+        <div class="mg"><h5>ONE THING TO REMEMBER</h5><p>${s.mem ? s.mem.oneR : (s.rem ? s.rem[0] : '')}</p></div>
+      </div>
+    `;
   }
 
-  $("#cardwrap").innerHTML = `<article class="card">
-    <div class="meta"><span class="stepno">STEP ${s.n} OF 30</span>
-      <span class="chip"><span class="dot" style="background:var(--accent2)"></span>${chapLabel(s.n)}</span>${stChip}</div>
-    <h2>${esc(s.t)}</h2>
-    <p class="purpose">${esc(s.p)}</p>
-    ${body}${finale}
+  // Audio / Narration Bar
+  const audioBarHtml = `
+    <div class="audiobar ${state.sound ? 'show' : ''}" id="audioBar">
+      <span class="ab-lbl">NARRATION</span>
+      <button class="btn sm primary" id="btnPlayAudio">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play
+      </button>
+      <button class="btn sm ghost" id="btnStopAudio">Stop</button>
+      <span style="margin-left:auto;display:flex;gap:4px;align-items:center">
+        <span style="font-size:10px;color:var(--muted)">SPEED:</span>
+        <button class="speedbtn ${state.playbackSpeed===1.0?'on':''}" data-spd="1.0">1x</button>
+        <button class="speedbtn ${state.playbackSpeed===1.25?'on':''}" data-spd="1.25">1.25x</button>
+        <button class="speedbtn ${state.playbackSpeed===1.5?'on':''}" data-spd="1.5">1.5x</button>
+      </span>
+    </div>
+  `;
+
+  // Controls footer
+  const controlsHtml = `
     <div class="controls">
-      <button class="btn ghost" data-prev ${!prev?"disabled":""}>← PREVIOUS</button>
-      <button class="modebtn ${mode==='quiz'?'on':''}" data-mode="quiz" title="Q">QUIZ ME</button>
-      <button class="modebtn ${mode==='reverse'?'on':''}" data-mode="reverse">REVERSE IT</button>
-      <button class="modebtn ${mode==='memory'?'on':''}" data-mode="memory" title="M">MEMORY MODE</button>
-      <span class="spacer"></span>
-      <button class="btn" data-hear title="Space">▶ HEAR THIS</button>
-      <button class="btn primary" data-next>${state.step===30?"FINISH":"NEXT STEP"} →</button>
+      <button class="modebtn ${state.mode==='learn'?'on':''}" data-mode="learn">LEARN</button>
+      <button class="modebtn ${state.mode==='quiz'?'on':''}" data-mode="quiz">QUIZ</button>
+      <button class="modebtn ${state.mode==='review'?'on':''}" data-mode="review">REVISION</button>
+      <button class="modebtn ${state.mode==='mem'?'on':''}" data-mode="mem">MEMORY</button>
+      <div class="spacer"></div>
+      <button class="btn primary sm" id="btnMarkDone">
+        ${state.completed.has(n) ? '✓ Completed' : 'Mark as Complete'}
+      </button>
     </div>
-    <div class="audiobar" id="audiobar">
-      <span class="ab-lbl">VOICE</span>
-      <button class="btn sm" data-audio="pause">⏸ Pause</button>
-      <button class="btn sm" data-audio="stop">⏹ Stop</button>
-      <span class="muted" style="font-size:11px">speed</span>
-      ${[0.8,1.0,1.2,1.5].map(r=>`<button class="speedbtn ${r===1.0?'on':''}" data-speed="${r}">${r}×</button>`).join("")}
+  `;
+
+  cardwrap.innerHTML = `
+    <article class="card">
+      <div class="meta">
+        <span class="stepno">STEP ${s.n} OF 30</span>
+        <span class="chip cur"><span class="dot"></span>${chap.name}</span>
+      </div>
+      <h2>${s.t}</h2>
+      ${modeHeader}
+      ${mainBodyHtml}
+      ${audioBarHtml}
+      ${controlsHtml}
+    </article>
+  `;
+
+  // Mark step done automatically on view or keep manual button
+  updateMapHighlight();
+  if (state.sound && state.mode === 'learn') playNarration();
+}
+
+/* ---------- HIGHLIGHT TERMINOLOGY ---------- */
+function highlightTerms(text) {
+  if (!text) return '';
+  let res = text;
+  Object.keys(TERMS).forEach(term => {
+    const reg = new RegExp(`\\b(${term}s?)\\b`, 'gi');
+    res = res.replace(reg, match => `<button class="term" data-term="${term}">${match}</button>`);
+  });
+  return res;
+}
+
+/* ---------- UPDATE MAP & PROGRESS ---------- */
+function updateMapHighlight() {
+  document.querySelectorAll('.mapnode').forEach(node => {
+    const st = parseInt(node.getAttribute('data-step'), 10);
+    node.classList.toggle('cur', st === state.curStep);
+    node.classList.toggle('done', state.completed.has(st));
+  });
+
+  const count = state.completed.size;
+  ringtxt.textContent = `${count}/30`;
+  const offset = 97.4 - (97.4 * count / 30);
+  ringfg.style.strokeDashoffset = offset;
+}
+
+function updateProgressUI() {
+  updateMapHighlight();
+}
+
+/* ---------- RAIL PANELS RENDER ---------- */
+function renderRailPanels() {
+  renderNeuralNet();
+  renderChart();
+  renderLearningLoop();
+}
+
+function renderNeuralNet() {
+  const svg = `
+    <svg viewBox="0 0 280 170">
+      <!-- Links -->
+      ${EMB_THE.map((_, i) => HIDDEN.map((_, j) => `
+        <line class="nlink ${j===0||j===3?'live':''}" x1="30" y1="${25 + i*40}" x2="140" y2="${20 + j*42}"/>
+      `).join('')).join('')}
+      ${HIDDEN.map((h, i) => Array.from({length:9}).map((_, j) => `
+        <line class="nlink ${h.out>0?'live':''}" x1="140" y1="${20 + i*42}" x2="250" y2="${10 + j*18}"/>
+      `).join('')).join('')}
+
+      <!-- Input Layer (4) -->
+      ${EMB_THE.map((v, i) => `
+        <circle class="nnode active" cx="30" cy="${25 + i*40}" r="10" data-tt="Input Emb ${i}:${v}"/>
+        <text class="nlabel" x="5" y="${28 + i*40}">x${i}</text>
+      `).join('')}
+
+      <!-- Hidden Layer (4) -->
+      ${HIDDEN.map((h, i) => `
+        <circle class="nnode ${h.out>0?'active':''}" cx="140" cy="${20 + i*42}" r="12" data-tt="Neuron ${i}: z=${h.z.toFixed(3)}, out=${h.out.toFixed(3)}"/>
+        <text class="nlabel" x="136" y="${23 + i*42}">h${i}</text>
+      `).join('')}
+
+      <!-- Output Layer (9 sample dots) -->
+      ${Array.from({length:9}).map((_, i) => `
+        <circle class="nnode ${i===1?'active':''}" cx="250" cy="${10 + i*18}" r="6" data-tt="Output Logit ${i}"/>
+      `).join('')}
+    </svg>
+  `;
+  $('nnwrap').innerHTML = svg;
+}
+
+function renderChart() {
+  const svg = `
+    <svg viewBox="0 0 280 100">
+      <path d="M 20 80 Q 80 75, 140 30 T 260 20" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <path d="M 20 85 Q 80 80, 140 50 T 260 30" fill="none" stroke="var(--accent2)" stroke-width="2"/>
+      <circle cx="140" cy="30" r="4" fill="var(--amber)"/>
+      <circle cx="260" cy="20" r="4" fill="var(--amber)"/>
+    </svg>
+  `;
+  $('chartwrap').innerHTML = svg;
+}
+
+function renderLearningLoop() {
+  const stages = [
+    {n:1, l:"FORWARD PASS", s:"Predict next word"},
+    {n:2, l:"LOSS FUNCTION", s:"Calculate error"},
+    {n:3, l:"BACKPROPAGATION", s:"Assign blame"},
+    {n:4, l:"WEIGHT UPDATE", s:"Adjust parameters"}
+  ];
+  $('loopviz').innerHTML = stages.map((st, i) => `
+    <div class="loopnode ${i===0?'hot':''}">
+      <span>${st.l}</span>
+      <span style="margin-left:auto;font-size:9px;color:var(--faint)">${st.s}</span>
     </div>
-  </article>`;
-  renderHeader(); renderMap();
+    ${i < 3 ? `<div class="looparrow">↓</div>` : ''}
+  `).join('');
 }
 
-/* ---------- NEURAL NETWORK VIZ ---------- */
-function buildNN(){
-  const words = ["The","quick","brown","fox","jumps","over","the","lazy","dog"];
-  const W=330,H=320, xs=[42,165,290];
-  const yIn=i=>60+i*66, yH=i=>60+i*66, yO=i=>26+i*32;
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tiny neural network: 4 inputs, 4 hidden neurons, 9 outputs">`;
-  // links
-  for(let i=0;i<4;i++)for(let j=0;j<4;j++)
-    svg+=`<line class="nlink live" data-nn="w₁[${i}][${j}] · hidden neuron ${j}" x1="${xs[0]+11}" y1="${yIn(i)}" x2="${xs[1]-13}" y2="${yH(j)}"/>`;
-  for(let j=0;j<4;j++)for(let k=0;k<9;k++)
-    svg+=`<line class="nlink ${HIDDEN[j].out>0?'live':''}" data-nn="w₂[${j}][${k}] · output '${words[k]}'" x1="${xs[1]+11}" y1="${yH(j)}" x2="${xs[2]-13}" y2="${yO(k)}"/>`;
-  // nodes
-  for(let i=0;i<4;i++)
-    svg+=`<g data-nn="INPUT ${i} · embedding value of 'The' = ${f6(EMB_THE[i])}"><circle class="nnode" cx="${xs[0]}" cy="${yIn(i)}" r="10"/><text class="nvalue" x="${xs[0]}" y="${yIn(i)+3}" text-anchor="middle">${EMB_THE[i].toFixed(2)}</text><text class="nlabel" x="${xs[0]-14}" y="${yIn(i)+3}" text-anchor="end">x${i}</text></g>`;
-  for(let j=0;j<4;j++){
-    const h=HIDDEN[j];
-    svg+=`<g data-nn="HIDDEN ${j} · sum ${f6(h.sum)} + bias ${f6(h.bias)} → z ${h.z>=0?'+':''}${f6(h.z)} → ReLU ${f6(h.out)}"><circle class="nnode ${h.out>0?'active':''}" cx="${xs[1]}" cy="${yH(j)}" r="12"/><text class="nvalue" x="${xs[1]}" y="${yH(j)+3}" text-anchor="middle">${h.out.toFixed(2)}</text><text class="nlabel" x="${xs[1]-16}" y="${yH(j)+3}" text-anchor="end">h${j}</text></g>`;
-  }
-  for(let k=0;k<9;k++)
-    svg+=`<g data-nn="OUTPUT ${k} · '${words[k]}' · softmax probability over this word"><circle class="nnode" cx="${xs[2]}" cy="${yO(k)}" r="9"/><text class="nlabel" x="${xs[2]+13}" y="${yO(k)+3}">${words[k]}</text></g>`;
-  svg+=`<text class="nlabel" x="${xs[0]}" y="24" text-anchor="middle">INPUT · 4</text>
-        <text class="nlabel" x="${xs[1]}" y="24" text-anchor="middle">HIDDEN · 4</text>
-        <text class="nlabel" x="${xs[2]}" y="12" text-anchor="middle">OUTPUT · 9</text></svg>`;
-  $("#nnwrap").innerHTML = svg;
+/* ---------- VOICE NARRATION ---------- */
+function playNarration() {
+  if (!('speechSynthesis' in window) || !state.sound) return;
+  window.speechSynthesis.cancel();
+  const s = STEPS.find(x => x.n === state.curStep);
+  if (!s) return;
+
+  const txt = `${s.t}. ${s.p}. ${s.w}`;
+  const utter = new SpeechSynthesisUtterance(txt);
+  utter.rate = state.playbackSpeed;
+  utter.onstart = () => { state.isSpeaking = true; updateAudioBtnUI(); };
+  utter.onend = () => { state.isSpeaking = false; updateAudioBtnUI(); };
+  utter.onerror = () => { state.isSpeaking = false; updateAudioBtnUI(); };
+  window.speechSynthesis.speak(utter);
 }
 
-/* ---------- TRAINING CHART ---------- */
-function buildChart(){
-  // verified checkpoints (step, loss, pquick) measured before update
-  const ptsL=[[1,2.608369],[20,0.549986]];
-  const ptsP=[[1,0.073655],[20,0.576958]];
-  const X=s=>20+(s-1)/19*280, YL=v=>110-(v/2.8)*95, YP=v=>215-(v/0.65)*80;
-  const curve=(pf,yf)=>{let d="";for(let s=1;s<=20;s++){const t=(s-1)/19,e=Math.exp(-3.2*t);const l=2.608369-(2.608369-0.549986)*(1-e)/(1-Math.exp(-3.2));const p=0.073655+(0.576958-0.073655)*(1-e)/(1-Math.exp(-3.2));const x=X(s),y=yf(s===1?pf[0][1]:s===20?pf[1][1]:(pf===ptsL?l:p));d+=(s?"L":"M")+x.toFixed(1)+","+y.toFixed(1)+" ";}return d;};
-  let svg=`<svg viewBox="0 0 320 240">
-    <line x1="20" y1="110" x2="300" y2="110" stroke="var(--border)"/>
-    <line x1="20" y1="215" x2="300" y2="215" stroke="var(--border)"/>
-    <path d="${curve(ptsL,YL)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4" opacity=".55"/>
-    <path d="${curve(ptsP,YP)}" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-dasharray="5 4" opacity=".55"/>
-    ${ptsL.map(p=>`<circle cx="${X(p[0])}" cy="${YL(p[1])}" r="4" fill="var(--amber)"/><text class="nlabel" x="${X(p[0])}" y="${YL(p[1])-9}" text-anchor="middle" fill="var(--text)">${p[1].toFixed(3)}</text>`).join("")}
-    ${ptsP.map(p=>`<circle cx="${X(p[0])}" cy="${YP(p[1])}" r="4" fill="var(--amber)"/><text class="nlabel" x="${X(p[0])}" y="${YP(p[1])+16}" text-anchor="middle" fill="var(--text)">${p[1].toFixed(3)}</text>`).join("")}
-    <text class="nlabel" x="20" y="128">loss</text><text class="nlabel" x="20" y="233">P(quick)</text>
-    <text class="nlabel" x="300" y="128" text-anchor="end">step 1 → 20</text></svg>`;
-  $("#chartwrap").innerHTML = svg;
-}
-
-/* ---------- LEARNING LOOP ---------- */
-function buildLoop(){
-  const nodes=["INPUT","FORWARD PASS","PREDICTION","LOSS","BACKWARD PASS","GRADIENTS","PARAMETER UPDATE","TRY AGAIN"];
-  $("#loopviz").innerHTML = nodes.map((n,i)=>`<div class="loopnode${i===0?' hot':''}" data-li="${i}">${n}</div>${i<nodes.length-1?'<div class="looparrow">↓</div>':'<div class="looparrow">↺</div>'}`).join("");
-  if(!reduced){
-    let i=0;
-    setInterval(()=>{
-      document.querySelectorAll(".loopnode").forEach(el=>el.classList.remove("hot"));
-      i=(i+1)%nodes.length;
-      const el=document.querySelector(`.loopnode[data-li="${i}"]`); if(el)el.classList.add("hot");
-    },1400);
+function stopNarration() {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    state.isSpeaking = false;
+    updateAudioBtnUI();
   }
 }
 
-/* ---------- MEMORY MAP ---------- */
-function renderMemMap(){
-  $("#memmapbody").innerHTML = CHAPTERS.map(c=>{
-    const steps=[]; for(let n=c.range[0];n<=c.range[1];n++) steps.push(n);
-    return `<div class="memchap"><h4>CHAPTER ${c.id} — ${c.name}</h4>
+function updateAudioBtnUI() {
+  const btn = $('btnPlayAudio');
+  if (btn) {
+    btn.innerHTML = state.isSpeaking ? 
+      `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause` :
+      `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play`;
+  }
+}
+
+/* ---------- EVENT LISTENERS ---------- */
+function setupEventListeners() {
+  // Navigation delegation
+  document.addEventListener('click', e => {
+    const btnStep = e.target.closest('[data-step]');
+    if (btnStep) {
+      const st = parseInt(btnStep.getAttribute('data-step'), 10);
+      renderStep(st);
+      return;
+    }
+
+    const btnTerm = e.target.closest('.term');
+    if (btnTerm) {
+      showTermPopover(btnTerm.getAttribute('data-term'), e);
+      return;
+    }
+
+    const btnMode = e.target.closest('[data-mode]');
+    if (btnMode) {
+      state.mode = btnMode.getAttribute('data-mode');
+      renderStep(state.curStep);
+      return;
+    }
+
+    const btnShowAns = e.target.closest('.btn-show-ans');
+    if (btnShowAns) {
+      const targetId = btnShowAns.getAttribute('data-target');
+      const qEl = $(targetId);
+      if (qEl) qEl.classList.toggle('open');
+      return;
+    }
+
+    const btnClose = e.target.closest('[data-close]');
+    if (btnClose) {
+      const ov = btnClose.closest('.overlay');
+      if (ov) ov.classList.remove('show');
+      return;
+    }
+
+    // Close term popover if clicking outside
+    if (!e.target.closest('#termPop') && !e.target.closest('.term')) {
+      $('termPop').style.display = 'none';
+    }
+  });
+
+  // Controls
+  $('btnStart').onclick = () => { $('welcome').classList.remove('show'); renderStep(1); };$('btnTheme').onclick = () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', state.theme);
+    saveState();
+  };
+  $('btnSound').onclick = () => {
+    state.sound = !state.sound;
+    updateSoundBtn();
+    if (!state.sound) stopNarration();
+    else playNarration();
+    saveState();
+  };
+  $('btnReset').onclick = () => {
+    if (confirm("Reset all course progress?")) {
+      state.completed.clear();
+      state.curStep = 1;
+      saveState();
+      updateProgressUI();
+      renderStep(1);
+    }
+  };
+
+  // Overlays
+  $('btnMap').onclick = () => showMemoryMap();$('btnSearch').onclick = () => showSearch();
+  $('btnKeys').onclick = () =>$('keysov').classList.add('show');
+
+  // Search Input
+  $('searchinput').oninput = e => handleSearch(e.target.value);
+
+  // Audio delegation inside card
+  document.addEventListener('click', e => {
+    if (e.target.closest('#btnPlayAudio')) {
+      if (state.isSpeaking) stopNarration();
+      else playNarration();
+    }
+    if (e.target.closest('#btnStopAudio')) stopNarration();
+    const spdBtn = e.target.closest('.speedbtn');
+    if (spdBtn) {
+      state.playbackSpeed = parseFloat(spdBtn.getAttribute('data-spd'));
+      document.querySelectorAll('.speedbtn').forEach(b => b.classList.toggle('on', b === spdBtn));
+      if (state.isSpeaking) playNarration();
+    }
+    if (e.target.closest('#btnMarkDone')) {
+      if (state.completed.has(state.curStep)) state.completed.delete(state.curStep);
+      else state.completed.add(state.curStep);
+      saveState();
+      updateProgressUI();
+      renderStep(state.curStep);
+    }
+  });
+
+  // Tooltips for Neural Net
+  document.addEventListener('mouseover', e => {
+    const node = e.target.closest('[data-tt]');
+    const tip = $('nntip');
+    if (node) {
+      tip.innerHTML = `<div class="tt">DETAILS</div>${node.getAttribute('data-tt')}`;
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 10) + 'px';
+      tip.style.top = (e.clientY + 10) + 'px';
+    } else if (tip) {
+      tip.style.display = 'none';
+    }
+  });
+}
+
+function updateSoundBtn() {
+  const btn = $('btnSound');
+  btn.classList.toggle('on', state.sound);
+}
+
+/* ---------- POPOVER & OVERLAYS ---------- */
+function showTermPopover(termKey, e) {
+  const info = TERMS[termKey.toLowerCase()];
+  if (!info) return;
+  const pop = $('termPop');
+  pop.innerHTML = `
+    <h4>${termKey.toUpperCase()}</h4>
+    <div class="tp"><b>DEFINITION</b>${info.d}</div>
+    <div class="tp"><b>ELI5</b>${info.eli5}</div>
+    <div class="tp"><b>WHY IT MATTERS</b>${info.why}</div>
+  `;
+  pop.style.display = 'block';
+  const rect = e.target.getBoundingClientRect();
+  pop.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+  pop.style.top = (rect.bottom + 8) + 'px';
+}
+
+function showMemoryMap() {
+  const body = $('memmapbody');
+  body.innerHTML = CHAPTERS.map(c => `
+    <div class="memchap">
+      <h4>CHAPTER ${c.id}: ${c.name}</h4>
       <p class="mm">${c.model}</p>
-      <div class="memsteps">${steps.map(n=>`<button class="mstep ${state.completed[n]?'done':''}" data-go="${n}">${n}. ${STEPS[n-1].t}</button>`).join("")}</div></div>`;
-  }).join("");
+      <div class="memsteps">
+        ${STEPS.filter(s => s.n >= c.range[0] && s.n <= c.range[1]).map(s => `
+          <button class="mstep ${state.completed.has(s.n)?'done':''}" data-step="${s.n}">
+            ${s.n}.${s.t}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  $('memmap').classList.add('show');
 }
 
-/* ---------- SEARCH ---------- */
-const SEARCH_INDEX = STEPS.map(s=>({
-  n:s.n, title:s.t, text:(s.t+" "+s.p+" "+s.w+" "+s.proc+" "+s.m.join(" ")+" "+s.eli5+" "+s.rem.join(" ")).toLowerCase()
-}));
-function doSearch(q){
-  q=q.trim().toLowerCase();
-  const resBox=$("#searchres");
-  if(!q){resBox.innerHTML=`<div class="empty">Type to search steps, terms, equations, explanations…</div>`;return;}
-  const hits=SEARCH_INDEX.filter(e=>e.text.includes(q)).slice(0,12);
-  const termHits=Object.keys(TERMS).filter(t=>t.includes(q));
-  resBox.innerHTML =
-    (termHits.length?`<p class="muted" style="font-size:11px;letter-spacing:.14em;margin-bottom:8px">TERMS</p>`+
-      termHits.map(t=>`<button class="sres" data-term="${t}"><span class="sn">TERM</span><span><span class="st">${t}</span><span class="sx">${TERMS[t].d}</span></span></button>`).join(""):"")+
-    (hits.length?`<p class="muted" style="font-size:11px;letter-spacing:.14em;margin:12px 0 8px">STEPS</p>`+
-      hits.map(h=>`<button class="sres" data-go="${h.n}"><span class="sn">${String(h.n).padStart(2,"0")}</span><span><span class="st">${h.title}</span><span class="sx">${STEPS[h.n-1].p}</span></span></button>`).join(""):"")+
-    (!hits.length&&!termHits.length?`<div class="empty">No matches for “${q}”.</div>`:"");
+function showSearch() {
+  $('searchov').classList.add('show');$('searchinput').focus();
 }
 
-/* ---------- SPEECH ---------- */
-let rate=1.0;
-function speakCurrent(){
-  if(!state.sound) return;
-  if(!("speechSynthesis" in window)) return;
-  const s=STEPS[state.step-1];
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(`Step ${s.n} of 30. ${s.t}. ${s.p} ${s.w} In simple terms: ${s.eli5}`);
-  u.rate=rate; u.pitch=1.0;
-  u.onend=()=>$("#audiobar")&&$("#audiobar").classList.remove("show");
-  speechSynthesis.speak(u);
-  const ab=$("#audiobar"); if(ab)ab.classList.add("show");
-}
-function toggleSpeech(){
-  if(!("speechSynthesis" in window)) return;
-  if(speechSynthesis.speaking && !speechSynthesis.paused){ speechSynthesis.pause(); }
-  else if(speechSynthesis.paused){ speechSynthesis.resume(); }
-  else { speakCurrent(); }
-}
+function handleSearch(query) {
+  const q = query.toLowerCase().trim();
+  const resContainer = $('searchres');
+  if (!q) { resContainer.innerHTML = ''; return; }
 
-/* ---------- NAVIGATION ---------- */
-function goTo(n){
-  n=Math.max(1,Math.min(30,n));
-  state.step=n; save(); mode="learn";
-  stopSpeech();
-  renderCard();
-  window.scrollTo({top:0,behavior:reduced?"auto":"smooth"});
-}
-function stopSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); }
+  const matches = STEPS.filter(s => 
+    s.t.toLowerCase().includes(q) || 
+    s.w.toLowerCase().includes(q) || 
+    s.p.toLowerCase().includes(q)
+  );
 
-/* ---------- OVERLAY helpers ---------- */
-function showOv(id){ $(id).classList.add("show"); }
-function hideOv(id){ $(id).classList.remove("show"); }
-function closeAllOv(){ document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("show")); hideTermPop(); }
-
-/* ---------- TERM POPOVER ---------- */
-function showTermPop(term,x,y){
-  const t=TERMS[term]; if(!t)return;
-  const p=$("#termPop");
-  p.innerHTML=`<h4>${term}</h4>
-    <div class="tp"><b>SIMPLE DEFINITION</b>${t.d}</div>
-    <div class="tp"><b>EXPLAIN LIKE I'M 5</b>${t.eli5}</div>
-    <div class="tp" style="margin-bottom:0"><b>WHY IT MATTERS</b>${t.why}</div>`;
-  p.style.display="block";
-  const r=p.getBoundingClientRect();
-  p.style.left=Math.min(Math.max(8,x-20),innerWidth-r.width-8)+"px";
-  p.style.top=Math.min(Math.max(8,y+14),innerHeight-r.height-8)+"px";
-}
-function hideTermPop(){ $("#termPop").style.display="none"; }
-
-/* ---------- GLOBAL CLICK DELEGATION ---------- */
-document.addEventListener("click",e=>{
-  const T=e.target;
-  const g=sel=>T.closest(sel);
-  let el;
-  if(el=g("[data-go]")){ closeAllOv(); goTo(+el.dataset.go); return; }
-  if(el=g("[data-go-map]")){ closeAllOv(); state.step=1; save(); renderCard(); window.scrollTo({top:0,behavior:"smooth"}); return; }
-  if(el=g("[data-prev]")){ if(state.step>1) goTo(state.step-1); return; }
-  if(el=g("[data-next]")){ state.completed[state.step]=true; save(); if(state.step<30) goTo(state.step+1); else { mode="learn"; renderCard(); } return; }
-  if(el=g("[data-mode]")){ mode = mode===el.dataset.mode ? "learn" : el.dataset.mode; stopSpeech(); renderCard(); return; }
-  if(el=g("[data-reveal]")){ const q=el.closest(".quizq,.mg"); if(q){const a=q.querySelector(".a"); if(a)a.style.display="block"; el.style.display="none";} return; }
-  if(g("[data-gotit]")){ delete state.review[state.step]; state.completed[state.step]=true; save(); goTo(Math.min(30,state.step+1)); return; }
-  if(g("[data-review]")){ state.review[state.step]=true; save(); renderCard(); return; }
-  if(el=g("[data-hear]")){ toggleSpeech(); return; }
-  if(el=g("[data-audio='pause']")){ if("speechSynthesis" in window){ speechSynthesis.paused?speechSynthesis.resume():speechSynthesis.pause(); } return; }
-  if(g("[data-audio='stop']")){ stopSpeech(); const ab=$("#audiobar"); if(ab)ab.classList.remove("show"); return; }
-  if(el=g("[data-speed]")){ rate=+el.dataset.speed; document.querySelectorAll(".speedbtn").forEach(b=>b.classList.toggle("on",b===el)); if("speechSynthesis" in window&&speechSynthesis.speaking){stopSpeech();speakCurrent();} return; }
-  if(el=g("[data-term]")){ showTermPop(el.dataset.term.toLowerCase(), e.clientX, e.clientY); return; }
-  if(el=g("[data-close]")){ el.closest(".overlay").classList.remove("show"); hideTermPop(); return; }
-  if(!g("#termPop")&&!g(".term")) hideTermPop();
-});
-document.addEventListener("keydown",e=>{
-  if(e.target.tagName==="INPUT"){ if(e.key==="Escape"){closeAllOv(); e.target.blur(); } return; }
-  switch(e.key){
-    case "ArrowLeft": goTo(state.step-1); break;
-    case "ArrowRight": goTo(state.step+1); break;
-    case " ": e.preventDefault(); toggleSpeech(); break;
-    case "r": case "R": { const b=document.querySelector("[data-reveal]"); if(b)b.click(); break; }
-    case "q": case "Q": mode = mode==="quiz"?"learn":"quiz"; renderCard(); break;
-    case "m": case "M": mode = mode==="memory"?"learn":"memory"; renderCard(); break;
-    case "?": closeAllOv(); showOv("#keysov"); break;
-    case "/": e.preventDefault(); closeAllOv(); showOv("#searchov"); setTimeout(()=>$("#searchinput").focus(),50); break;
-    case "Escape": closeAllOv(); break;
+  if (matches.length === 0) {
+    resContainer.innerHTML = `<div class="empty">No matching steps found</div>`;
+    return;
   }
-});
 
-/* NN tooltip */
-document.addEventListener("mouseover",e=>{
-  const el=e.target.closest("[data-nn]");
-  const tip=$("#nntip");
-  if(el){ tip.innerHTML=`<div class="tt">INSPECT</div>${el.dataset.nn}`; tip.style.display="block";
-    const r=el.getBoundingClientRect(); tip.style.left=Math.min(innerWidth-270,r.left)+"px"; tip.style.top=(r.bottom+8)+"px";
-  } else if(!e.target.closest("#nntip")) tip.style.display="none";
-});
-
-/* header buttons */
-$("#btnSearch").onclick=()=>{closeAllOv();showOv("#searchov");setTimeout(()=>$("#searchinput").focus(),50);};
-$("#btnKeys").onclick=()=>{closeAllOv();showOv("#keysov");};
-$("#btnMap").onclick=()=>{renderMemMap();closeAllOv();showOv("#memmap");};
-$("#btnSound").onclick=function(){ state.sound=!state.sound; save(); this.classList.toggle("on",state.sound); if(!state.sound)stopSpeech(); };
-$("#btnTheme").onclick=()=>{ const h=document.documentElement; h.dataset.theme = h.dataset.theme==="dark"?"light":"dark"; };
-$("#btnReset").onclick=()=>{ if(confirm("Reset all progress? This clears completed steps, quiz status, and your current position.")){ state={step:1,completed:{},review:{},sound:state.sound}; save(); mode="learn"; renderCard(); renderMemMap(); } };
-$("#searchinput").addEventListener("input",e=>doSearch(e.target.value));
-$("#btnStart").onclick=()=>{ hideOv("#welcome"); goTo(state.step); };
-
-/* shortcuts content */
-$("#scutsbody").innerHTML = [
-  ["←","Previous step"],["→","Next step"],["Space","Play / pause explanation"],
-  ["R","Reveal answer"],["Q","Quiz mode"],["M","Memory mode"],["/","Search"],["Esc","Close popover / modal"]
-].map(c=>`<div class="scut"><kbd>${c[0]}</kbd>${c[1]}</div>`).join("");
-
-/* keep the master map pinned right below the (possibly wrapped) header */
-function fixMapOffset(){ document.getElementById("mapbar").style.top = document.querySelector("header").offsetHeight + "px"; }
-addEventListener("resize", fixMapOffset);
-
-/* ---------- INIT ---------- */
-fixMapOffset();
-buildNN(); buildChart(); buildLoop(); renderCard();
-doSearch("");
-if(Object.keys(state.completed).length>0 || state.step>1){
-  const wc=$("#welCont"); wc.style.display="block";
-  wc.textContent="Welcome back — you are on step "+state.step+" ("+Object.keys(state.completed).length+"/30 completed). Click start to continue.";
+  resContainer.innerHTML = matches.map(s => `
+    <button class="sres" data-step="${s.n}">
+      <span class="sn">${s.n}</span>
+      <div>
+        <div class="st">${s.t}</div>
+        <div class="sx">${s.p}</div>
+      </div>
+    </button>
+  `).join('');
 }
-if(!state.sound) $("#btnSound").classList.remove("on");
+
+/* ---------- KEYBOARD SHORTCUTS ---------- */
+function setupShortcuts() {
+  const scuts = [
+    {k:"← / →", d:"Previous / Next step"},
+    {k:"/ ", d:"Search course"},
+    {k:"M", d:"Toggle Master Memory Map"},
+    {k:"S", d:"Toggle voice narration"},
+    {k:"?", d:"Keyboard shortcuts"}
+  ];
+  $('scutsbody').innerHTML = scuts.map(s => `
+    <div class="scut"><kbd>${s.k}</kbd><span>${s.d}</span></div>
+  `).join('');
+
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' && state.curStep < 30) renderStep(state.curStep + 1);
+    if (e.key === 'ArrowLeft' && state.curStep > 1) renderStep(state.curStep - 1);
+    if (e.key === '/') { e.preventDefault(); showSearch(); }
+    if (e.key === 'm' || e.key === 'M') showMemoryMap();
+    if (e.key === 's' || e.key === 'S') $('btnSound').click();
+    if (e.key === '?') $('keysov').classList.toggle('show');
+  });
+}
+
+// Boot application
+window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
